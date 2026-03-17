@@ -47,6 +47,7 @@
                                 <tr>
                                     <th class="px-3 py-2 text-left">排名</th>
                                     <th class="px-3 py-2 text-left">策略ID</th>
+                                    <th class="px-3 py-2 text-left">使用周期</th>
                                     <th class="px-3 py-2 text-left">评级</th>
                                     <th class="px-3 py-2 text-left">年化收益</th>
                                     <th class="px-3 py-2 text-left">最大回撤</th>
@@ -79,6 +80,16 @@
             "06": "海豚交易法",
             "07": "跳空交易系统",
             "08": "神奇九转"
+        };
+        const STRATEGY_PERIOD_MAP = {
+            "01": "60分钟",
+            "02": "1分钟",
+            "03": "日线",
+            "04": "日线",
+            "05": "30分钟",
+            "06": "1分钟",
+            "07": "15分钟",
+            "08": "1分钟"
         };
 
         async function loadReport(reportId = null) {
@@ -161,7 +172,7 @@
             body.innerHTML = '';
             mobile.innerHTML = '';
             if (!ranking.length) {
-                body.innerHTML = '<tr><td colspan="8" class="px-3 py-6 text-center text-slate-500">暂无策略对比数据</td></tr>';
+                body.innerHTML = '<tr><td colspan="9" class="px-3 py-6 text-center text-slate-500">暂无策略对比数据</td></tr>';
                 mobile.innerHTML = '<div class="text-center text-slate-500 py-3">暂无策略对比数据</div>';
                 return;
             }
@@ -175,6 +186,7 @@
                 tr.innerHTML = `
                     <td class="px-3 py-2">#${r.rank ?? '-'}</td>
                     <td class="px-3 py-2 font-mono">${sid}</td>
+                    <td class="px-3 py-2">${STRATEGY_PERIOD_MAP[sid] || '--'}</td>
                     <td class="px-3 py-2">${r.rating ?? '-'}</td>
                     <td class="px-3 py-2 ${roi >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${(roi*100).toFixed(2)}%</td>
                     <td class="px-3 py-2 text-rose-300">${(dd*100).toFixed(2)}%</td>
@@ -187,6 +199,7 @@
                 card.className = 'bg-slate-800/50 border border-slate-700 rounded p-3 text-sm enter-anim transition-all duration-200 hover:border-slate-500 hover:-translate-y-0.5';
                 card.innerHTML = `
                     <div class="text-white font-semibold mb-1">#${r.rank ?? '-'} 策略 ${sid} · ${r.rating ?? '-'}</div>
+                    <div class="text-slate-300">使用周期：${STRATEGY_PERIOD_MAP[sid] || '--'}</div>
                     <div class="${roi >= 0 ? 'text-emerald-400' : 'text-rose-400'}">年化收益：${(roi*100).toFixed(2)}%</div>
                     <div class="text-rose-300">最大回撤：${(dd*100).toFixed(2)}%</div>
                     <div class="text-cyan-300">胜率：${(winRate*100).toFixed(2)}%</div>
@@ -237,6 +250,7 @@
                 card.className = 'bg-slate-800/50 border border-slate-700 rounded-lg p-4 text-sm enter-anim transition-all duration-200 hover:border-slate-500 hover:-translate-y-0.5';
                 card.innerHTML = `
                     <div class="font-bold text-white mb-2">策略 ${sid} · ${sname}</div>
+                    <div class="text-slate-300">使用周期：${STRATEGY_PERIOD_MAP[sid] || '--'}</div>
                     <div class="text-slate-300">回测周期：${r.start_date} ~ ${r.end_date}</div>
                     <div class="text-slate-300">初始资金：${Number(r.init_capital || 0).toFixed(2)} 元</div>
                     <div class="text-slate-300">结束资金：${Number(r.end_capital || 0).toFixed(2)} 元</div>

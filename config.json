@@ -14,7 +14,7 @@
     // 自定义 API 配置 (仅当 source="default" 时生效)
     // 示例: 您的 Quantify API 服务地址
     "default_api_key": "abc123",
-    "default_api_url": "https://balanced-earliest-font-families.trycloudflare.com"
+    "default_api_url": "https://tactics-ireland-ash-nato.trycloudflare.com"
   },
   "targets": [
     "301227.SZ" // 森鹰窗业

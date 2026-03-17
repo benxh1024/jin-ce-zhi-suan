@@ -206,6 +206,7 @@
                         <tr>
                             <th class="px-3 py-2">Rank</th>
                             <th class="px-3 py-2">Strategy</th>
+                            <th class="px-3 py-2">周期</th>
                             <th class="px-3 py-2">Rating</th>
                             <th class="px-3 py-2">ROI (Ann)</th>
                             <th class="px-3 py-2">Max DD</th>
@@ -285,20 +286,20 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <div class="relative group">
-                <select id="strategy-selector" onchange="switchStrategy(this.value)" class="appearance-none bg-slate-800 border border-slate-600 text-white py-1.5 pl-4 pr-10 rounded hover:border-trading-blue focus:outline-none focus:ring-1 focus:ring-trading-blue transition-colors cursor-pointer text-xs font-medium">
-                    <option value="all">所有策略联合投票</option>
-                    <option value="01">策略 01: 三周期共振波段</option>
-                    <option value="02">策略 02: 短线弱转强</option>
-                    <option value="03">策略 03: ETF行业轮动</option>
-                    <option value="04">策略 04: 龙头首阴</option>
-                    <option value="05">策略 05: 3N法则</option>
-                    <option value="06">策略 06: 海豚交易法</option>
-                    <option value="07">策略 07: 跳空交易系统</option>
-                    <option value="08">策略 08: 神奇九转</option>
-                </select>
+            <div class="relative">
+                <button id="strategy-multi-btn" onclick="toggleStrategyPanel()" class="bg-slate-800 border border-slate-600 text-white py-1.5 pl-3 pr-9 rounded hover:border-trading-blue focus:outline-none focus:ring-1 focus:ring-trading-blue transition-colors text-xs font-medium min-w-[220px] text-left">
+                    策略：全部策略
+                </button>
                 <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <i class="fa-solid fa-chevron-down text-xs"></i>
+                </div>
+                <div id="strategy-multi-panel" class="hidden absolute top-full mt-2 left-0 z-50 w-[320px] bg-slate-900 border border-slate-700 rounded shadow-2xl p-3">
+                    <label class="flex items-center gap-2 text-xs text-white mb-2">
+                        <input id="strategy-all-checkbox" type="checkbox" checked onchange="toggleAllStrategies(this.checked)" />
+                        <span>全部策略</span>
+                    </label>
+                    <div id="strategy-multi-list" class="max-h-56 overflow-y-auto space-y-1"></div>
+                    <button onclick="applyStrategySelection()" class="mt-3 w-full bg-trading-blue hover:bg-blue-600 text-white py-1.5 rounded text-xs">应用选择</button>
                 </div>
             </div>
             <button onclick="reloadStrategies()" class="bg-trading-blue hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs transition-all border border-blue-500">
@@ -325,13 +326,20 @@
             <div class="flex items-center gap-2 text-trading-dim text-xs font-bold uppercase tracking-widest border-b border-slate-700 pb-2">
                 <i class="fa-solid fa-landmark"></i> 智能决策中枢 (Central Hub)
             </div>
+            <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                <span class="px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 border border-emerald-700/50">真实联动</span>
+                <span>由后端事件实时驱动</span>
+            </div>
 
             <!-- Zhongshu Sheng -->
             <div class="glass-panel p-4 rounded-lg flex-1 flex flex-col relative overflow-hidden group hover:border-trading-blue/30 transition-colors">
                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><i class="fa-solid fa-scroll text-6xl"></i></div>
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="font-bold text-trading-blue text-sm">策略研究中心 (Strategy Center)</h3>
-                    <span class="status-dot bg-trading-green animate-pulse" id="status-zhongshu"></span>
+                    <div class="flex items-center gap-2">
+                        <span class="status-dot bg-trading-green animate-pulse" id="status-zhongshu"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 border border-emerald-700/50">真实联动</span>
+                    </div>
                 </div>
                 <div class="text-[10px] text-slate-400 mb-1">职责: 策略生成与草拟 (Strategy Gen)</div>
                 <div class="flex-1 bg-slate-900/50 rounded border border-slate-700/50 p-3 font-mono text-xs overflow-y-auto" id="log-zhongshu">
@@ -344,7 +352,10 @@
                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><i class="fa-solid fa-scale-balanced text-6xl"></i></div>
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="font-bold text-trading-yellow text-sm">风控审核中心 (Risk Control Center)</h3>
-                    <span class="status-dot bg-trading-yellow" id="status-menxia"></span>
+                    <div class="flex items-center gap-2">
+                        <span class="status-dot bg-trading-yellow" id="status-menxia"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 border border-emerald-700/50">真实联动</span>
+                    </div>
                 </div>
                 <div class="text-[10px] text-slate-400 mb-1">职责: 风控审核与驳回 (Risk Audit)</div>
                 <div class="flex-1 bg-slate-900/50 rounded border border-slate-700/50 p-3 font-mono text-xs overflow-y-auto" id="log-menxia">
@@ -357,7 +368,10 @@
                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><i class="fa-solid fa-gavel text-6xl"></i></div>
                 <div class="flex justify-between items-start mb-2">
                     <h3 class="font-bold text-trading-red text-sm">指令执行中心 (Execution Center)</h3>
-                    <span class="status-dot bg-slate-500" id="status-shangshu"></span>
+                    <div class="flex items-center gap-2">
+                        <span class="status-dot bg-slate-500" id="status-shangshu"></span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300 border border-emerald-700/50">真实联动</span>
+                    </div>
                 </div>
                 <div class="text-[10px] text-slate-400 mb-1">职责: 指令调度与执行 (Execution)</div>
                 <div class="flex-1 bg-slate-900/50 rounded border border-slate-700/50 p-3 font-mono text-xs overflow-y-auto" id="log-shangshu">
@@ -370,6 +384,10 @@
         <section class="w-1/2 flex flex-col gap-4">
             <div class="flex items-center gap-2 text-trading-dim text-xs font-bold uppercase tracking-widest border-b border-slate-700 pb-2">
                 <i class="fa-solid fa-chess-board"></i> 核心执行模块 (Core Execution)
+            </div>
+            <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                <span class="px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 border border-amber-700/50">展示看板</span>
+                <span>以展示与观测为主，部分字段为占位或弱联动</span>
             </div>
             
             <div class="grid grid-cols-2 grid-rows-3 gap-4 flex-1">
@@ -645,6 +663,8 @@
         let liveRunning = false;
         let liveActionPending = false;
         let currentSource = 'default';
+        let strategyCatalog = [];
+        let selectedStrategyIds = [];
         const DIAG_STATE = {
             wsConnected: false,
             apiLatencyMs: null,
@@ -659,65 +679,121 @@
         const STRATEGY_GUIDE = {
             all: {
                 name: '全部策略总览',
-                logic: '多策略并行生成信号，按周期触发后统一进入风控审核与执行。',
-                effect: '适合先观察整体系统状态，避免单策略偏差。',
-                example: '示例：若07与01同向看多，信号一致性会提升；若分歧明显，置信度会下降。'
+                trigger: '多周期并行（按各策略trigger_timeframe）',
+                entry_rules: ['所有策略并行评估入场条件，命中后进入统一风控审核。'],
+                exit_rules: ['策略各自触发离场条件后，由执行模块模拟成交。'],
+                params: ['每次信号默认下单数量：1000股（各策略当前实现）'],
+                note: '适合先观察系统联动与策略分歧程度。',
+                example: '示例：若07与01同向看多，信号一致性提升；若方向分歧，置信度会下降。'
             },
             '01': {
                 name: '01 三周期共振波段',
-                logic: '结合周线趋势、日线均线和60分钟MACD共振，寻找中短趋势切入点。',
-                effect: '趋势段表现通常更稳定，信号频率中等。',
-                example: '示例：周线MA20抬升 + 日线贴近MA10 + 60分钟金叉放量时触发买入。'
+                trigger: '60分钟',
+                entry_rules: [
+                    '周线MA20上升（最近两根周线MA20：最新 > 上一根）。',
+                    '日线回踩条件：|日线最低价 - 日线MA10| / 日线MA10 < 2%。',
+                    '60分钟MACD金叉：当前DIF > DEA 且上一根DIF <= DEA。',
+                    '60分钟放量：当前成交量 > 近5根60分钟均量。'
+                ],
+                exit_rules: ['持仓后若日线收盘价 < 日线MA20，则卖出离场。'],
+                params: ['止损价：买入价 * 0.97', '止盈：无固定止盈'],
+                note: '数据窗口要求较高：至少500根基础K线、20根日线/周线、35根60分钟线。',
+                example: '示例：周线趋势向上 + 日线靠近MA10 + 60分钟金叉放量 -> 触发买入。'
             },
             '02': {
                 name: '02 短线弱转强烂板',
-                logic: '偏短线博弈策略，持有时间较短，重视次日强弱转换。',
-                effect: '交易节奏快，更多用于短线试错。',
-                example: '示例：弱势后出现转强迹象，策略尝试小仓位切入并快速退出。'
+                trigger: '1分钟',
+                entry_rules: ['当前代码实现中无入场条件（不会主动买入）。'],
+                exit_rules: ['已有持仓时，持仓bar数 >= 240则卖出（Next Day Exit）。'],
+                params: ['最大持有：240个触发bar'],
+                note: '该策略当前版本主要保留离场框架，入场逻辑待补充。',
+                example: '示例：若外部已有仓位，达到240个bar后强制离场。'
             },
             '03': {
                 name: '03 ETF行业轮动',
-                logic: '基于日线MA10趋势判定，站上均线参与，跌破均线离场。',
-                effect: '信号较慢，适合趋势延续行情。',
-                example: '示例：日线收盘上穿MA10后建仓，后续跌回MA10下方平仓。'
+                trigger: '日线',
+                entry_rules: ['日线收盘价 > 日线MA10 -> 买入。'],
+                exit_rules: ['持仓后若日线收盘价 < 日线MA10 -> 卖出。'],
+                params: ['止损价：买入价 * 0.95', '止盈：无固定止盈'],
+                note: '至少需要10根日线数据；当前实现名称为ETF轮动，但对单标的也可运行。',
+                example: '示例：日线重新站上MA10建仓，跌破MA10离场。'
             },
             '04': {
                 name: '04 龙头首阴反包',
-                logic: '围绕龙头股首阴后的反包结构进行识别。',
-                effect: '触发条件严格，信号稀疏。',
-                example: '示例：强势龙头出现首阴后次日放量反包，进入候选触发。'
+                trigger: '日线',
+                entry_rules: ['当前代码实现中无入场逻辑（on_bar 直接返回 None）。'],
+                exit_rules: ['当前代码实现中无离场逻辑。'],
+                params: ['无'],
+                note: '该策略尚未实现，属于占位策略。',
+                example: '示例：当前版本不会产生任何交易信号。'
             },
             '05': {
                 name: '05 3N法则主升浪',
-                logic: '关注30分钟级别MACD与量能共振，捕捉主升阶段。',
-                effect: '在趋势加速段更容易给出有效信号。',
-                example: '示例：30分钟DIF>DEA且量能超过近5周期均量1.5倍时尝试开仓。'
+                trigger: '30分钟',
+                entry_rules: [
+                    '30分钟MACD多头：DIF > DEA 且 DIF > 0。',
+                    '30分钟放量：当前成交量 > 近5根30分钟均量 * 1.5。'
+                ],
+                exit_rules: ['持仓后若持有bar数 >= 1200，则按时间离场（Time 5 Days）。'],
+                params: ['止损价：买入价 * 0.95', '止盈价：买入价 * 1.10'],
+                note: '至少需要20根30分钟数据。',
+                example: '示例：30分钟水上金叉且明显放量时买入，达到时长或止盈止损后离场。'
             },
             '06': {
                 name: '06 海豚交易法',
-                logic: '1分钟MA26趋势过滤 + MACD水上金叉，配合1%追踪止损。',
-                effect: '信号较活跃，回撤控制依赖止损执行。',
-                example: '示例：价格在MA26上方且MACD金叉后开仓，创新高后抬升追踪止损。'
+                trigger: '1分钟',
+                entry_rules: [
+                    '趋势过滤：当前价 > MA26。',
+                    'MACD金叉：当前DIF > DEA 且上一根DIF <= 上一根DEA。',
+                    '水上金叉：当前DIF > 0 且 当前DEA > 0。'
+                ],
+                exit_rules: ['持仓后使用1%追踪止损：当前低点 <= 追踪止损价则卖出。'],
+                params: ['初始止损：买入价 * 0.99', '追踪止损：最高价 * 0.99'],
+                note: '至少需要50根基础K线。',
+                example: '示例：上穿MA26并出现水上金叉入场，后续按最高价动态抬升止损线。'
             },
             '07': {
                 name: '07 跳空交易系统',
-                logic: '15分钟级别识别跳空低开后的阳线反转，结合追踪止损。',
-                effect: '在波动较大的个股上更活跃。',
-                example: '示例：15分钟低开后收阳形成反转信号，随后按1%追踪止损管理。'
+                trigger: '15分钟',
+                entry_rules: [
+                    '跳空低开：当前15分钟open < 上一根15分钟close * 0.998。',
+                    '阳线确认：当前15分钟close > 当前15分钟open。'
+                ],
+                exit_rules: ['持仓后使用1%追踪止损：当前价 <= 追踪止损价则卖出。'],
+                params: ['初始止损：买入价 * 0.99', '追踪止损：最高价 * 0.99'],
+                note: '至少需要20根15分钟数据。',
+                example: '示例：15分钟出现低开反包阳线后入场，随后按追踪止损管理仓位。'
             },
             '08': {
                 name: '08 神奇九转',
-                logic: '基于序列计数寻找拐点，入场后用追踪止损保护利润。',
-                effect: '更偏向拐点反转捕捉，信号质量依赖波动结构。',
-                example: '示例：满足九转买入条件后入场，若后续回落触发追踪止损则退出。'
+                trigger: '1分钟',
+                entry_rules: [
+                    '九连条件：最近9根K线均满足 close[i] > close[i-4]。',
+                    '强化校验：第5根 > 第1根，且第9根 > 第5根。'
+                ],
+                exit_rules: ['持仓后使用1%追踪止损：当前收盘价 <= 追踪止损价则卖出。'],
+                params: ['初始止损：买入价 * 0.99', '追踪止损：最高价 * 0.99'],
+                note: '至少需要13根基础K线（9根序列 + 4根比较滞后）。',
+                example: '示例：九连条件和强化校验同时满足后入场，回落触发追踪止损时离场。'
             }
         };
+        const STRATEGY_FALLBACK = [
+            { id: '01', name: '三周期共振波段' },
+            { id: '02', name: '短线弱转强烂板' },
+            { id: '03', name: 'ETF行业轮动' },
+            { id: '04', name: '龙头首阴反包' },
+            { id: '05', name: '3N法则主升浪' },
+            { id: '06', name: '海豚交易法' },
+            { id: '07', name: '跳空交易系统' },
+            { id: '08', name: '神奇九转' }
+        ];
         
         ws.onopen = () => {
             console.log('Connected to Cabinet');
             logMessage('SYSTEM', 'WebSocket 连接成功', 'system');
             DIAG_STATE.wsConnected = true;
             updateDebugPanel();
+            fetchGlobalStrategies();
             syncStatus();
         };
         
@@ -822,23 +898,74 @@
         }
 
         function updateStrategyList(strategies) {
-            const selector = document.getElementById('strategy-selector');
-            selector.innerHTML = '';
-            
-            strategies.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.innerText = `[${s.id}] ${s.name}`;
-                selector.appendChild(opt);
-            });
-            
-            // Add "ALL" option
-            const allOpt = document.createElement('option');
-            allOpt.value = 'all';
-            allOpt.innerText = '★ 全策略协同 (All Active)';
-            allOpt.selected = true;
-            selector.prepend(allOpt);
+            strategyCatalog = Array.isArray(strategies) ? strategies.slice() : [];
+            selectedStrategyIds = strategyCatalog.map(s => String(s.id));
+            const list = document.getElementById('strategy-multi-list');
+            if (list) {
+                list.innerHTML = '';
+                strategyCatalog.forEach(s => {
+                    const row = document.createElement('label');
+                    row.className = 'flex items-center gap-2 text-xs text-slate-200 py-1';
+                    row.innerHTML = `<input type="checkbox" class="strategy-item-checkbox" value="${s.id}" checked /> <span>[${s.id}] ${s.name}</span>`;
+                    const cb = row.querySelector('input');
+                    if (cb) {
+                        cb.addEventListener('change', () => {
+                            const picked = getSelectedStrategiesFromUI();
+                            const allBox = document.getElementById('strategy-all-checkbox');
+                            if (allBox) allBox.checked = picked.length === strategyCatalog.length;
+                        });
+                    }
+                    list.appendChild(row);
+                });
+            }
+            const allBox = document.getElementById('strategy-all-checkbox');
+            if (allBox) allBox.checked = true;
+            renderStrategySelectionSummary();
             updateStrategyQuick('all');
+        }
+
+        function toggleStrategyPanel() {
+            const panel = document.getElementById('strategy-multi-panel');
+            if (!panel) return;
+            panel.classList.toggle('hidden');
+        }
+
+        function toggleAllStrategies(checked) {
+            document.querySelectorAll('.strategy-item-checkbox').forEach(cb => {
+                cb.checked = !!checked;
+            });
+        }
+
+        function getSelectedStrategiesFromUI() {
+            const ids = [];
+            document.querySelectorAll('.strategy-item-checkbox').forEach(cb => {
+                if (cb.checked) ids.push(String(cb.value));
+            });
+            return ids;
+        }
+
+        function renderStrategySelectionSummary() {
+            const btn = document.getElementById('strategy-multi-btn');
+            if (!btn) return;
+            if (!selectedStrategyIds.length || selectedStrategyIds.length === strategyCatalog.length) {
+                btn.innerText = '策略：全部策略';
+            } else if (selectedStrategyIds.length === 1) {
+                const one = strategyCatalog.find(s => String(s.id) === String(selectedStrategyIds[0]));
+                btn.innerText = `策略：[${selectedStrategyIds[0]}] ${one ? one.name : ''}`;
+            } else {
+                btn.innerText = `策略：已选 ${selectedStrategyIds.length} 个`;
+            }
+        }
+
+        function applyStrategySelection() {
+            const picked = getSelectedStrategiesFromUI();
+            selectedStrategyIds = picked;
+            const allBox = document.getElementById('strategy-all-checkbox');
+            if (allBox) allBox.checked = picked.length === strategyCatalog.length;
+            renderStrategySelectionSummary();
+            const panel = document.getElementById('strategy-multi-panel');
+            if (panel) panel.classList.add('hidden');
+            switchStrategy(picked);
         }
 
         function startSimulation() {
@@ -1105,17 +1232,32 @@
             } catch (_) {}
         }
 
+        async function fetchGlobalStrategies() {
+            try {
+                const res = await fetch('/api/strategies');
+                const data = await res.json();
+                if (data && data.status === 'success' && Array.isArray(data.strategies) && data.strategies.length) {
+                    updateStrategyList(data.strategies);
+                    return;
+                }
+            } catch (_) {}
+            if (!strategyCatalog.length) {
+                updateStrategyList(STRATEGY_FALLBACK);
+            }
+        }
+
         function reloadStrategies() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'reload_strategies' }));
                 logMessage('SYSTEM', '发送策略热更新指令...');
+                setTimeout(fetchGlobalStrategies, 300);
             } else {
                 fetch('/api/control/reload_strategies', { method: 'POST' })
                     .then(res => res.json())
                     .then(data => {
                         logMessage('SYSTEM', data.msg);
                         if(data.status === 'success') {
-                             alert("策略热更新成功，请重新启动回测/实盘");
+                             fetchGlobalStrategies();
                         }
                     })
                     .catch(err => logMessage('SYSTEM', '策略热更新请求失败', 'danger'));
@@ -1127,10 +1269,14 @@
             if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
                 resultsBox.classList.add('hidden');
             }
+            const strategyBtn = document.getElementById('strategy-multi-btn');
+            const strategyPanel = document.getElementById('strategy-multi-panel');
+            if (strategyBtn && strategyPanel && !strategyBtn.contains(e.target) && !strategyPanel.contains(e.target)) {
+                strategyPanel.classList.add('hidden');
+            }
         });
 
         function switchStrategy(val) {
-            if (val === 'waiting' || val === 'loading') return;
             const steps = [
                 "正在断开当前策略信号...",
                 "正在加载目标策略参数...",
@@ -1139,10 +1285,16 @@
                 "策略切换完成"
             ];
             playOverlaySteps(steps, () => {
-                logMessage('SYSTEM', `策略切换完成: ${val}`, 'success');
+                const msg = Array.isArray(val) ? (val.length ? `策略切换完成: ${val.join(',')}` : '策略切换完成: 全部策略') : `策略切换完成: ${val}`;
+                logMessage('SYSTEM', msg, 'success');
             });
-            ws.send(JSON.stringify({ type: 'switch_strategy', id: val }));
-            updateStrategyQuick(val);
+            if (Array.isArray(val)) {
+                ws.send(JSON.stringify({ type: 'switch_strategy', ids: val }));
+                updateStrategyQuick(val.length === 1 ? String(val[0]) : 'all');
+            } else {
+                ws.send(JSON.stringify({ type: 'switch_strategy', id: val }));
+                updateStrategyQuick(val);
+            }
         }
 
         function playOverlaySteps(steps, onDone) {
@@ -1212,30 +1364,27 @@
         // --- Backtest Logic ---
         function startBacktest() {
             const overlay = document.getElementById('backtest-overlay');
-            const progressContainer = document.getElementById('backtest-progress-container');
-            const resultsDiv = document.getElementById('backtest-results');
-            
-            // Reset UI
-            overlay.classList.add('active');
-            progressContainer.classList.remove('hidden');
-            resultsDiv.classList.add('hidden');
-            document.getElementById('backtest-progress-bar').style.width = '0%';
-            document.getElementById('backtest-status-text').innerText = '正在初始化...';
+            if (overlay) overlay.classList.remove('active');
             strategyReportsBuffer = [];
             document.getElementById('bt-strategy-reports').innerHTML = '';
             
             const code = normalizeCode(document.getElementById('stock-search-input').value || '600036.SH');
-            const strategy = document.getElementById('strategy-selector').value;
+            const picked = selectedStrategyIds.length ? selectedStrategyIds : strategyCatalog.map(s => String(s.id));
+            const strategy = (!picked.length || picked.length === strategyCatalog.length) ? 'all' : String(picked[0]);
             const range = document.getElementById('bt-range-select')?.value || '1y';
             const capitalRaw = Number(document.getElementById('bt-capital-input')?.value || 1000000);
             const capital = Number.isFinite(capitalRaw) && capitalRaw >= 10000 ? Math.floor(capitalRaw) : 1000000;
             const dates = getBacktestDateRange(range);
             if (!dates) return;
+            const periodText = buildStrategyPeriodText(picked);
+            logMessage('回测', `开始回测 ${code} (${dates.start}~${dates.end})，资金 ${capital.toLocaleString()}，策略周期：${periodText}`, 'warning');
+            updateBacktestProgressLog(0, '初始化中...', dates.start);
             
             ws.send(JSON.stringify({
                 type: 'start_backtest',
                 stock: code,
                 strategy: strategy,
+                strategy_ids: picked.length && picked.length !== strategyCatalog.length ? picked : null,
                 start: dates.start,
                 end: dates.end,
                 capital: capital
@@ -1282,15 +1431,38 @@
         
         function updateBacktestProgress(data) {
             const { progress, current_date } = data;
-            document.getElementById('backtest-progress-bar').style.width = `${progress}%`;
-            document.getElementById('backtest-date-display').innerText = current_date;
-            document.getElementById('backtest-status-text').innerText = `正在模拟市场数据... ${progress}%`;
+            updateBacktestProgressLog(progress, `正在模拟市场数据... ${progress}%`, current_date);
+        }
+
+        function updateBacktestProgressLog(progress, statusText, currentDate) {
+            let row = document.getElementById('backtest-progress-row');
+            if (!row) {
+                const timeline = document.getElementById('imperial-timeline');
+                if (!timeline) return;
+                row = document.createElement('div');
+                row.id = 'backtest-progress-row';
+                row.className = 'flex gap-2';
+                timeline.appendChild(row);
+            }
+            row.innerHTML = `
+                <span class="text-slate-500">[${getTime()}]</span>
+                <span class="font-bold w-16 text-right text-trading-yellow">回测进度</span>
+                <span class="text-slate-200 flex-1">${statusText} | 当前时间: ${currentDate || '--'}</span>
+            `;
+            const timeline = document.getElementById('imperial-timeline');
+            if (timeline) timeline.scrollTop = timeline.scrollHeight;
+        }
+
+        function buildStrategyPeriodText(ids) {
+            const allIds = Array.isArray(ids) && ids.length ? ids : strategyCatalog.map(s => String(s.id));
+            const uniq = Array.from(new Set(allIds));
+            return uniq.map(id => `${id}:${toZhTimeframe((STRATEGY_GUIDE[id] || STRATEGY_GUIDE.all).trigger || '--')}`).join('，');
         }
 
         function openStrategyDocs() {
             const overlay = document.getElementById('strategy-doc-overlay');
             const selector = document.getElementById('strategy-doc-selector');
-            const current = document.getElementById('strategy-selector')?.value || 'all';
+            const current = selectedStrategyIds.length === 1 ? String(selectedStrategyIds[0]) : 'all';
             if (selector) selector.value = current in STRATEGY_GUIDE ? current : 'all';
             renderStrategyDoc(selector?.value || 'all');
             if (overlay) overlay.classList.add('active');
@@ -1304,15 +1476,21 @@
         function renderStrategyDoc(strategyId) {
             const target = document.getElementById('strategy-doc-content');
             if (!target) return;
+            const renderList = (arr) => {
+                const list = Array.isArray(arr) ? arr : [];
+                if (!list.length) return '<div class="text-slate-500 text-xs">无</div>';
+                return `<ul class="list-disc pl-5 space-y-1 text-slate-300 text-xs">${list.map(x => `<li>${x}</li>`).join('')}</ul>`;
+            };
             if (strategyId === 'all') {
                 const ids = ['01','02','03','04','05','06','07','08'];
                 target.innerHTML = ids.map(id => {
                     const d = STRATEGY_GUIDE[id];
                     return `<div class="bg-slate-800/70 border border-slate-700 rounded p-3">
                         <div class="text-white font-bold mb-1">${d.name}</div>
-                        <div class="text-slate-300 text-xs">逻辑：${d.logic}</div>
-                        <div class="text-slate-300 text-xs mt-1">效果：${d.effect}</div>
-                        <div class="text-slate-500 text-[11px] mt-1">${d.example}</div>
+                        <div class="text-slate-400 text-[11px] mb-1">使用数据周期：${toZhTimeframe(d.trigger || '--')}</div>
+                        <div class="text-slate-300 text-xs">入场规则：${(d.entry_rules && d.entry_rules[0]) || '无'}</div>
+                        <div class="text-slate-300 text-xs mt-1">离场规则：${(d.exit_rules && d.exit_rules[0]) || '无'}</div>
+                        <div class="text-slate-500 text-[11px] mt-1">${d.example || ''}</div>
                     </div>`;
                 }).join('');
                 return;
@@ -1320,9 +1498,15 @@
             const d = STRATEGY_GUIDE[strategyId] || STRATEGY_GUIDE.all;
             target.innerHTML = `<div class="bg-slate-800/70 border border-slate-700 rounded p-4">
                 <div class="text-white text-base font-bold mb-2">${d.name}</div>
-                <div class="text-slate-300 text-sm mb-2"><span class="text-slate-400">逻辑：</span>${d.logic}</div>
-                <div class="text-slate-300 text-sm mb-2"><span class="text-slate-400">效果：</span>${d.effect}</div>
-                <div class="text-slate-300 text-sm"><span class="text-slate-400">示例：</span>${d.example}</div>
+                <div class="text-slate-400 text-xs mb-2">使用数据周期：${toZhTimeframe(d.trigger || '--')}</div>
+                <div class="text-slate-200 text-sm font-semibold mb-1">入场规则</div>
+                ${renderList(d.entry_rules)}
+                <div class="text-slate-200 text-sm font-semibold mb-1 mt-3">离场规则</div>
+                ${renderList(d.exit_rules)}
+                <div class="text-slate-200 text-sm font-semibold mb-1 mt-3">关键参数</div>
+                ${renderList(d.params)}
+                <div class="text-slate-300 text-sm mt-3"><span class="text-slate-400">说明：</span>${d.note || '--'}</div>
+                <div class="text-slate-300 text-sm mt-2"><span class="text-slate-400">示例：</span>${d.example || '--'}</div>
             </div>`;
         }
 
@@ -1332,16 +1516,14 @@
             const logic = document.getElementById('strategy-quick-logic');
             const example = document.getElementById('strategy-quick-example');
             if (name) name.innerText = d.name;
-            if (logic) logic.innerText = `逻辑：${d.logic} 效果：${d.effect}`;
-            if (example) example.innerText = d.example;
+            if (logic) logic.innerText = `入场：${(d.entry_rules && d.entry_rules[0]) || '无'} 离场：${(d.exit_rules && d.exit_rules[0]) || '无'}`;
+            if (example) example.innerText = d.example || '';
         }
         
         function showBacktestResults(data) {
-            const progressContainer = document.getElementById('backtest-progress-container');
-            const resultsDiv = document.getElementById('backtest-results');
-            
-            progressContainer.classList.add('hidden');
-            resultsDiv.classList.remove('hidden');
+            updateBacktestProgressLog(100, '回测完成 100%', 'Done');
+            const selected = selectedStrategyIds.length ? selectedStrategyIds : strategyCatalog.map(s => String(s.id));
+            logMessage('回测', `回测完成：${data.stock}，策略周期：${buildStrategyPeriodText(selected)}`, 'success');
             
             // Fill Data
             document.getElementById('bt-code').innerText = data.stock;
@@ -1371,6 +1553,7 @@
                 tr.innerHTML = `
                     <td class="px-3 py-2 text-slate-400">#${row.rank}</td>
                     <td class="px-3 py-2 font-bold text-white">${row.strategy_id}</td>
+                    <td class="px-3 py-2 text-slate-300">${toZhTimeframe((STRATEGY_GUIDE[row.strategy_id] || STRATEGY_GUIDE.all).trigger || '--')}</td>
                     <td class="px-3 py-2 ${ratingColor}">${row.rating}</td>
                     <td class="px-3 py-2 text-trading-yellow">${(row.annualized_roi * 100).toFixed(2)}%</td>
                     <td class="px-3 py-2 text-trading-red">${(row.max_dd * 100).toFixed(2)}%</td>
@@ -1404,6 +1587,7 @@
                     card.className = 'bg-slate-800/50 border border-slate-700 rounded p-3 text-xs font-mono';
                     card.innerHTML = `
                         <div class="text-white font-bold mb-2">策略 ${r.strategy_id}</div>
+                        <div class="text-slate-300">使用数据周期：${toZhTimeframe((STRATEGY_GUIDE[r.strategy_id] || STRATEGY_GUIDE.all).trigger || '--')}</div>
                         <div class="text-slate-300">回测周期：${r.start_date} ~ ${r.end_date}</div>
                         <div class="text-slate-300">初始资金：${Number(r.init_capital).toFixed(2)} 元</div>
                         <div class="text-slate-300">结束资金：${Number(r.end_capital).toFixed(2)} 元</div>
@@ -1471,6 +1655,7 @@
         
         // Initial Log
         logMessage('SYSTEM', '控制台就绪，等待连接...', 'info');
+        fetchGlobalStrategies();
         renderLiveStatus();
         updateConfidenceScore();
         onBacktestRangeChange(document.getElementById('bt-range-select')?.value || '1y');

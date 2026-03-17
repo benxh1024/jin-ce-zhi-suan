@@ -152,7 +152,13 @@ class LiveCabinet:
         If strategy_id is 'all', enable all.
         Otherwise, only enable the specified ID.
         """
-        if strategy_id == 'all':
+        if isinstance(strategy_id, list):
+            picked = set([str(x) for x in strategy_id if str(x)])
+            if not picked:
+                self.active_strategy_ids = [s.id for s in self.strategies]
+            else:
+                self.active_strategy_ids = [s.id for s in self.strategies if s.id in picked]
+        elif strategy_id == 'all':
             self.active_strategy_ids = [s.id for s in self.strategies]
         else:
             self.active_strategy_ids = [strategy_id]
@@ -180,6 +186,8 @@ class LiveCabinet:
     def _get_runnable_strategy_ids(self, current_dt):
         runnable = []
         for sid in self.active_strategy_ids:
+            if sid is None:
+                continue
             tf = self.strategy_trigger_tf.get(sid, "1min")
             if self._is_timeframe_tick(current_dt, tf):
                 runnable.append(sid)
@@ -188,8 +196,10 @@ class LiveCabinet:
     def _format_tick_trigger_log(self, runnable_strategy_ids):
         grouped = {}
         for sid in runnable_strategy_ids:
+            if sid is None:
+                continue
             tf = self.strategy_trigger_tf.get(sid, "1min")
-            grouped.setdefault(tf, []).append(sid)
+            grouped.setdefault(tf, []).append(str(sid))
         tf_order = ["1min", "5min", "10min", "15min", "30min", "60min", "D"]
         parts = []
         for tf in tf_order:

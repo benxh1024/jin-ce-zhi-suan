@@ -168,7 +168,8 @@ class LiveRequest(BaseModel):
     stock_code: str = "600036.SH"
 
 class StrategySwitchRequest(BaseModel):
-    strategy_id: str
+    strategy_id: Optional[str] = None
+    strategy_ids: Optional[list[str]] = None
 
 class SourceSwitchRequest(BaseModel):
     source: str
@@ -187,6 +188,18 @@ async def get_report_page():
 async def search_stocks(q: str = ""):
     """Search stocks by code, name, or pinyin"""
     return {"results": stock_manager.search(q)}
+
+@app.get("/api/strategies")
+async def api_strategies():
+    try:
+        strategies = strategy_factory_module.create_strategies()
+        return {
+            "status": "success",
+            "strategies": [{"id": s.id, "name": s.name} for s in strategies]
+        }
+    except Exception as e:
+        logger.error(f"Failed to load strategies: {e}", exc_info=True)
+        return {"status": "error", "strategies": []}
 
 @app.get("/api/report/latest")
 async def api_latest_report():
@@ -310,9 +323,10 @@ async def api_stop_task():
 async def api_switch_strategy(req: StrategySwitchRequest):
     """Switch the active strategy on the fly"""
     global current_cabinet
+    selected = req.strategy_ids if req.strategy_ids else req.strategy_id
     if current_cabinet:
-        current_cabinet.set_active_strategies(req.strategy_id)
-        return {"status": "success", "msg": f"Strategy switched to {req.strategy_id}"}
+        current_cabinet.set_active_strategies(selected if selected else 'all')
+        return {"status": "success", "msg": f"Strategy switched to {selected}"}
     return {"status": "error", "msg": "No active cabinet running"}
 
 @app.post("/api/control/set_source")
@@ -436,6 +450,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif cmd.get("type") == "start_backtest":
                     stock_code = cmd.get("stock", "600036.SH")
                     strategy_id = cmd.get("strategy", "all")
+                    strategy_ids = cmd.get("strategy_ids")
                     strategy_mode = cmd.get("strategy_mode")  # e.g., 'top5'
                     start = cmd.get("start")  # 'YYYY-MM-DD'
                     end = cmd.get("end")      # 'YYYY-MM-DD'
@@ -445,14 +460,16 @@ async def websocket_endpoint(websocket: WebSocket):
                         cabinet_task.cancel()
                     start_new_backtest_report(stock_code, strategy_id)
                         
-                    cabinet_task = asyncio.create_task(run_backtest_task(stock_code, strategy_id, strategy_mode, start, end, capital))
+                    cabinet_task = asyncio.create_task(run_backtest_task(stock_code, strategy_id, strategy_mode, start, end, capital, strategy_ids))
                 
                 elif cmd.get("type") == "switch_strategy":
                     # Handle strategy switch
                     strategy_id = cmd.get("id")
-                    print(f"Switching to strategy: {strategy_id}")
+                    strategy_ids = cmd.get("ids")
+                    selected = strategy_ids if strategy_ids else strategy_id
+                    print(f"Switching to strategy: {selected}")
                     if current_cabinet:
-                        current_cabinet.set_active_strategies(strategy_id)
+                        current_cabinet.set_active_strategies(selected if selected else 'all')
                 
                 elif cmd.get("type") == "stop_simulation":
                      if cabinet_task and not cabinet_task.done():
@@ -492,7 +509,7 @@ async def run_cabinet_task(stock_code):
     except asyncio.CancelledError:
         print("Cabinet Task Cancelled")
 
-async def run_backtest_task(stock_code, strategy_id, strategy_mode=None, start=None, end=None, capital=None):
+async def run_backtest_task(stock_code, strategy_id, strategy_mode=None, start=None, end=None, capital=None, strategy_ids=None):
     """Wrapper to run backtest"""
     print(f"Starting Backtest for {stock_code}")
     
@@ -500,7 +517,8 @@ async def run_backtest_task(stock_code, strategy_id, strategy_mode=None, start=N
         stock_code=stock_code,
         strategy_id=strategy_id,
         event_callback=emit_event_to_ws,
-        strategy_mode=strategy_mode
+        strategy_mode=strategy_mode,
+        strategy_ids=strategy_ids
     )
     
     try:

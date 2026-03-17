@@ -147,24 +147,34 @@ class DataProvider:
         ]
         candidate_filters = [
             filters,
-            [f"code:eq:{code.replace('.SH','').replace('.SZ','')}", f"trade_time:gte:{start_time.strftime('%Y-%m-%d %H:%M:%S')}", f"trade_time:lte:{end_time.strftime('%Y-%m-%d %H:%M:%S')}"],
-            [f"ts_code:eq:{code}", f"trade_time:gte:{start_time.strftime('%Y-%m-%d %H:%M:%S')}", f"trade_time:lte:{end_time.strftime('%Y-%m-%d %H:%M:%S')}"],
-            [f"code:eq:{code}", f"dt:gte:{start_time.strftime('%Y-%m-%d %H:%M:%S')}", f"dt:lte:{end_time.strftime('%Y-%m-%d %H:%M:%S')}"]
+            [f"code:eq:{code.replace('.SH','').replace('.SZ','')}", f"trade_time:gte:{start_time.strftime('%Y-%m-%d %H:%M:%S')}", f"trade_time:lte:{end_time.strftime('%Y-%m-%d %H:%M:%S')}"]
         ]
         for fset in candidate_filters:
-            params = {
-                "limit": 200000,
-                "order_by": "trade_time",
-                "order_dir": "asc",
-                "filter": fset
-            }
-            response = self._request_get(f"/tables/{table}/rows", params, timeout=25)
-            if response is None:
+            all_rows = []
+            offset = 0
+            page_limit = 10000
+            while True:
+                params = {
+                    "limit": page_limit,
+                    "offset": offset,
+                    "order_by": "trade_time",
+                    "order_dir": "asc",
+                    "filter": fset
+                }
+                response = self._request_get(f"/tables/{table}/rows", params, timeout=25)
+                if response is None:
+                    all_rows = []
+                    break
+                rows = self._extract_rows(response.json())
+                if not rows:
+                    break
+                all_rows.extend(rows)
+                if len(rows) < page_limit:
+                    break
+                offset += page_limit
+            if not all_rows:
                 continue
-            rows = self._extract_rows(response.json())
-            if not rows:
-                continue
-            df = pd.DataFrame(rows)
+            df = pd.DataFrame(all_rows)
             if "trade_time" in df.columns and "dt" not in df.columns:
                 df = df.rename(columns={"trade_time": "dt"})
             return self._normalize_ohlcv_df(df)
