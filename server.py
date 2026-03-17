@@ -63,6 +63,10 @@ REPORTS_FILE = os.path.join(REPORTS_DIR, "backtest_reports.json")
 # Config
 config = ConfigLoader()
 
+def is_live_enabled():
+    cfg = ConfigLoader.reload()
+    return bool(cfg.get("system.enable_live", True))
+
 def load_report_history():
     global report_history, latest_backtest_result, latest_strategy_reports
     os.makedirs(REPORTS_DIR, exist_ok=True)
@@ -178,7 +182,14 @@ class SourceSwitchRequest(BaseModel):
 
 @app.get("/")
 async def get_dashboard():
-    return HTMLResponse(content=open("dashboard.html", "r", encoding="utf-8").read())
+    html = open("dashboard.html", "r", encoding="utf-8").read()
+    live_enabled_flag = "true" if is_live_enabled() else "false"
+    html = html.replace(
+        "<!-- JavaScript Logic -->",
+        f"<script>window.__LIVE_ENABLED__ = {live_enabled_flag};</script>\n    <!-- JavaScript Logic -->",
+        1
+    )
+    return HTMLResponse(content=html)
 
 @app.get("/report")
 async def get_report_page():
@@ -303,6 +314,8 @@ async def api_start_backtest(req: BacktestRequest):
 @app.post("/api/control/start_live")
 async def api_start_live(req: LiveRequest):
     """Start a live simulation task"""
+    if not is_live_enabled():
+        return {"status": "error", "msg": "Live功能已在配置中关闭（system.enable_live=false）"}
     global cabinet_task
     if cabinet_task and not cabinet_task.done():
         cabinet_task.cancel()
@@ -386,7 +399,8 @@ async def api_get_status():
     return {
         "is_running": is_running,
         "active_cabinet_type": type(current_cabinet).__name__ if current_cabinet else None,
-        "provider_source": current_provider_source or config.get("data_provider.source", "default")
+        "provider_source": current_provider_source or config.get("data_provider.source", "default"),
+        "live_enabled": is_live_enabled()
     }
 
 
@@ -436,6 +450,9 @@ async def websocket_endpoint(websocket: WebSocket):
                         await manager.broadcast({"type": "system", "data": {"msg": f"策略热更新失败: {str(e)}"}})
 
                 elif cmd.get("type") == "start_simulation":
+                    if not is_live_enabled():
+                        await manager.broadcast({"type": "system", "data": {"msg": "Live功能已在配置中关闭（system.enable_live=false）"}})
+                        continue
                     stock_code = cmd.get("stock", "600036.SH")
                     # Start async task
                     # Check if already running?
@@ -485,6 +502,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def run_cabinet_task(stock_code):
     """Wrapper to run cabinet live loop"""
+    if not is_live_enabled():
+        await manager.broadcast({"type": "system", "data": {"msg": "Live功能已在配置中关闭，无法启动监控"}})
+        return
     print(f"Starting Cabinet Task for {stock_code}")
     
     # Reload config
@@ -512,10 +532,12 @@ async def run_cabinet_task(stock_code):
 async def run_backtest_task(stock_code, strategy_id, strategy_mode=None, start=None, end=None, capital=None, strategy_ids=None):
     """Wrapper to run backtest"""
     print(f"Starting Backtest for {stock_code}")
+    initial_capital = float(capital) if capital is not None else 1000000.0
     
     cab = BacktestCabinet(
         stock_code=stock_code,
         strategy_id=strategy_id,
+        initial_capital=initial_capital,
         event_callback=emit_event_to_ws,
         strategy_mode=strategy_mode,
         strategy_ids=strategy_ids
@@ -529,8 +551,6 @@ async def run_backtest_task(stock_code, strategy_id, strategy_mode=None, start=N
             start_dt = datetime.strptime(start, "%Y-%m-%d")
         if end:
             end_dt = datetime.strptime(end, "%Y-%m-%d")
-        if capital:
-            cab.revenue = cab.revenue.__class__(float(capital))
         await cab.run(start_date=start_dt, end_date=end_dt)
     except asyncio.CancelledError:
         print("Backtest Task Cancelled")

@@ -516,7 +516,7 @@
                 <div id="strategy-quick-example" class="text-[10px] text-slate-500 mt-1">示例：当07与01同向看多时，信号一致性提升。</div>
             </div>
 
-            <div class="glass-panel rounded-lg p-3 border border-slate-700/70">
+            <div id="live-console-panel" class="hidden glass-panel rounded-lg p-3 border border-slate-700/70">
                 <div class="flex items-center justify-between mb-2">
                     <div class="text-xs uppercase tracking-widest text-slate-400">Live 控制台</div>
                     <span id="live-run-state" class="text-[10px] px-2 py-0.5 rounded bg-slate-700 text-slate-200">待机</span>
@@ -528,7 +528,7 @@
                 <div class="text-[10px] text-slate-500 mt-2">周期对照：1min=1分钟，5min=5分钟，10min=10分钟，15min=15分钟，30min=30分钟，60min=60分钟，D=日线</div>
             </div>
             
-            <div class="glass-panel flex-1 rounded-lg p-0 overflow-hidden flex flex-col">
+            <div id="live-stream-panel" class="glass-panel flex-1 rounded-lg p-0 overflow-hidden flex flex-col">
                 <div class="p-2 bg-slate-800/50 text-[10px] text-center text-slate-400 border-b border-slate-700">实时指令流 (Live Stream)</div>
                 <div class="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-xs" id="imperial-timeline">
                     <!-- Logs will be injected here -->
@@ -600,8 +600,8 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <div class="text-xs text-slate-500 font-mono">系统状态：<span id="system-status-text" class="text-slate-300">待机</span></div>
-            <button id="live-toggle-btn" onclick="toggleLive()" class="bg-trading-green hover:bg-emerald-600 text-white px-4 py-2 rounded font-bold text-sm transition-all border border-emerald-500 hover:-translate-y-0.5 active:scale-95 min-w-[128px]">
+            <div id="live-status-wrap" class="hidden text-xs text-slate-500 font-mono">系统状态：<span id="system-status-text" class="text-slate-300">待机</span></div>
+            <button id="live-toggle-btn" onclick="toggleLive()" class="hidden bg-trading-green hover:bg-emerald-600 text-white px-4 py-2 rounded font-bold text-sm transition-all border border-emerald-500 hover:-translate-y-0.5 active:scale-95 min-w-[128px]">
                 <i id="live-toggle-icon" class="fa-solid fa-satellite-dish"></i>
                 <span id="live-toggle-label">启动 Live</span>
             </button>
@@ -661,6 +661,7 @@
         const ws = new WebSocket(`ws://${window.location.host}/ws`);
         let strategyReportsBuffer = [];
         let liveRunning = false;
+        let liveEnabled = window.__LIVE_ENABLED__ === true;
         let liveActionPending = false;
         let currentSource = 'default';
         let strategyCatalog = [];
@@ -807,6 +808,7 @@
             DIAG_STATE.wsConnected = false;
             updateDebugPanel();
         };
+        syncStatus();
 
         function handleEvent(payload) {
             const { type, data } = payload;
@@ -969,6 +971,7 @@
         }
 
         function startSimulation() {
+            if (!liveEnabled) return;
             logMessage('SYSTEM', '正在自动启动内阁进程...', 'system');
             const code = normalizeCode(document.getElementById('stock-search-input').value || '600036');
             ws.send(JSON.stringify({
@@ -985,6 +988,7 @@
         }
 
         function toggleLive() {
+            if (!liveEnabled) return;
             if (liveActionPending) return;
             if (!ws || ws.readyState !== WebSocket.OPEN) {
                 logMessage('SYSTEM', 'WebSocket 未连接，无法切换 Live', 'danger');
@@ -1057,10 +1061,11 @@
         function selectStock(stock) {
             searchInput.value = stock.code;
             resultsBox.classList.add('hidden');
-            restartSimulation(stock.code);
+            if (liveEnabled && liveRunning) restartSimulation(stock.code);
         }
 
         function restartSimulation(code) {
+            if (!liveEnabled) return;
             // Stop current
             ws.send(JSON.stringify({ type: 'stop_simulation' }));
             
@@ -1076,6 +1081,7 @@
         }
 
         function stopSimulation() {
+            if (!liveEnabled) return;
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'stop_simulation' }));
                 logMessage('SYSTEM', '发送停止指令');
@@ -1098,6 +1104,14 @@
             const icon = document.getElementById('live-toggle-icon');
             const label = document.getElementById('live-toggle-label');
             if (!text || !badge || !btn || !icon || !label) return;
+            if (!liveEnabled) {
+                text.className = 'text-slate-500';
+                text.innerText = 'Live已关闭';
+                badge.className = 'text-[10px] px-2 py-0.5 rounded bg-slate-700 text-slate-400';
+                badge.innerText = '已关闭';
+                btn.disabled = true;
+                return;
+            }
             if (liveActionPending) {
                 text.className = 'text-trading-yellow animate-pulse';
                 text.innerText = '切换中';
@@ -1220,14 +1234,29 @@
             updateDebugPanel();
         }
 
+        function applyLiveVisibility() {
+            const liveConsolePanel = document.getElementById('live-console-panel');
+            const liveStreamPanel = document.getElementById('live-stream-panel');
+            const liveStatusWrap = document.getElementById('live-status-wrap');
+            const liveToggleBtn = document.getElementById('live-toggle-btn');
+            if (liveConsolePanel) liveConsolePanel.classList.toggle('hidden', !liveEnabled);
+            if (liveStreamPanel) liveStreamPanel.classList.remove('hidden');
+            if (liveStatusWrap) liveStatusWrap.classList.toggle('hidden', !liveEnabled);
+            if (liveToggleBtn) liveToggleBtn.classList.toggle('hidden', !liveEnabled);
+        }
+        applyLiveVisibility();
+        renderLiveStatus();
+
         async function syncStatus() {
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
-                liveRunning = Boolean(data.is_running && data.active_cabinet_type === 'live');
+                liveEnabled = data.live_enabled !== false;
+                liveRunning = liveEnabled && Boolean(data.is_running && String(data.active_cabinet_type || '').toLowerCase().includes('live'));
                 const sourceSel = document.getElementById('source-select');
                 if (data.provider_source) currentSource = data.provider_source;
                 if (sourceSel && data.provider_source) sourceSel.value = data.provider_source;
+                applyLiveVisibility();
                 renderLiveStatus();
             } catch (_) {}
         }

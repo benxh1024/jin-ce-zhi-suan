@@ -6,6 +6,10 @@ import os
 def main():
     # Load Config
     config = ConfigLoader()
+    live_enabled = config.get("system.enable_live", True)
+    if not live_enabled:
+        print("⛔ Live功能已在配置文件中关闭（system.enable_live=false）")
+        return
     
     # Priority: Env Var > Config File > Default
     
@@ -40,9 +44,6 @@ def main():
         tushare_token=tushare_token
     )
     cabinet.run_live()
-
-if __name__ == "__main__":
-    main()
 
 if __name__ == "__main__":
     main()

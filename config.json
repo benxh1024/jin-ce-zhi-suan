@@ -1,6 +1,7 @@
 {
   "system": {
-    "mode": "live",  // 运行模式: "live" (实盘监控) 或 "backtest" (历史回测)
+    "mode": "backtest",  // 运行模式: "live" (实盘监控) 或 "backtest" (历史回测)
+    "enable_live": false, // Live功能总开关: true开启, false关闭
     "initial_capital": 1000000.0, // 初始资金 (元)
     "log_level": "INFO" // 日志级别: DEBUG, INFO, WARNING, ERROR
   },
