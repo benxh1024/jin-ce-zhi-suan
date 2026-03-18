@@ -10,6 +10,7 @@ from src.utils.indicators import Indicators
 import pandas as pd
 import numpy as np
 from src.utils.runtime_params import get_value
+from src.strategy_intent.intent_engine import StrategyIntentEngine
 
 
 def _project_root():
@@ -138,6 +139,12 @@ def _sanitize_class_name(raw):
     return txt
 
 
+def normalize_strategy_intent(payload):
+    engine = StrategyIntentEngine()
+    intent = engine.normalize(payload)
+    return intent.to_dict(), intent.explain()
+
+
 def build_fallback_strategy_code(strategy_id, strategy_name, template_text):
     cls = _sanitize_class_name(f"GeneratedStrategy{strategy_id}")
     title = str(strategy_name or f"AI策略{strategy_id}")
@@ -193,6 +200,10 @@ def add_custom_strategy(entry):
         raise ValueError("strategy id is required")
     if any(str(r.get("id", "")).strip() == sid for r in rows):
         raise ValueError(f"strategy id already exists: {sid}")
+    intent_payload = entry.get("strategy_intent")
+    if not isinstance(intent_payload, dict):
+        raise ValueError("strategy_intent is required")
+    strategy_intent, intent_explain = normalize_strategy_intent(intent_payload)
     now = datetime.now().isoformat(timespec="seconds")
     row = {
         "id": sid,
@@ -201,6 +212,8 @@ def add_custom_strategy(entry):
         "code": str(entry.get("code", "")),
         "template_text": str(entry.get("template_text", "")),
         "analysis_text": str(entry.get("analysis_text", "")),
+        "strategy_intent": strategy_intent,
+        "intent_explain": intent_explain,
         "created_at": now,
         "updated_at": now
     }

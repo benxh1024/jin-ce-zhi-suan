@@ -33,6 +33,7 @@ from src.strategies.strategy_manager_repo import (
     delete_custom_strategy,
     set_strategy_enabled
 )
+from src.strategy_intent.intent_engine import StrategyIntentEngine
 from src.utils.stock_manager import stock_manager
 from src.utils.data_provider import DataProvider
 from src.utils.tushare_provider import TushareProvider
@@ -85,6 +86,7 @@ REPORTS_FILE = os.path.join(REPORTS_DIR, "backtest_reports.json")
 
 # Config
 config = ConfigLoader()
+intent_engine = StrategyIntentEngine()
 
 def is_live_enabled():
     cfg = ConfigLoader.reload()
@@ -244,6 +246,12 @@ class StrategyAnalyzeRequest(BaseModel):
     strategy_name: Optional[str] = None
     code_template: Optional[str] = None
 
+
+class StrategyMarketAnalyzeRequest(BaseModel):
+    market_state: dict
+    strategy_name: Optional[str] = None
+    code_template: Optional[str] = None
+
 class StrategyAddRequest(BaseModel):
     strategy_id: str
     strategy_name: str
@@ -251,6 +259,7 @@ class StrategyAddRequest(BaseModel):
     code: str
     template_text: Optional[str] = None
     analysis_text: Optional[str] = None
+    strategy_intent: Optional[dict] = None
 
 class StrategyDeleteRequest(BaseModel):
     strategy_id: str
@@ -272,19 +281,24 @@ def _extract_first_class_name(code_text):
     return m.group(1) if m else ""
 
 
-def _build_ai_analysis(template_text, strategy_id, strategy_name, code_template=None):
+def _build_ai_analysis(strategy_intent, strategy_id, strategy_name, code_template=None):
+    intent_obj = intent_engine.normalize(strategy_intent)
+    intent = intent_obj.to_dict()
+    intent_explain = intent_obj.explain()
     cfg = ConfigLoader.reload()
     api_key = str(cfg.get("data_provider.llm_api_key", "") or cfg.get("data_provider.api_key", "") or cfg.get("data_provider.default_api_key", "") or "").strip()
     base_url = str(cfg.get("data_provider.llm_api_url", "") or cfg.get("data_provider.default_api_url", "") or "").strip()
     model_name = str(cfg.get("data_provider.llm_model", "") or "").strip() or "gpt-4o-mini"
     strategy_name = str(strategy_name or f"AI策略{strategy_id}").strip()
-    fallback_code = build_fallback_strategy_code(strategy_id, strategy_name, template_text)
+    fallback_code = build_fallback_strategy_code(strategy_id, strategy_name, intent_explain)
     fallback_class_name = _extract_first_class_name(fallback_code)
     if not api_key or not base_url:
         return {
             "analysis_text": "未检测到可用大模型配置，已返回可执行默认策略代码。",
             "code": fallback_code,
-            "class_name": fallback_class_name
+            "class_name": fallback_class_name,
+            "strategy_intent": intent,
+            "intent_explain": intent_explain
         }
     url = base_url.rstrip("/")
     if not url.endswith("/chat/completions"):
@@ -292,13 +306,14 @@ def _build_ai_analysis(template_text, strategy_id, strategy_name, code_template=
             url = f"{url}/chat/completions"
         else:
             url = f"{url}/v1/chat/completions"
-    system_prompt = "你是资深量化开发专家。输出必须可执行、可落地。请根据用户策略模版生成完整Python策略代码。只生成一个类，继承BaseImplementedStrategy，类中必须实现on_bar。"
+    system_prompt = "你是资深量化开发专家。你只能根据StrategyIntent生成策略代码，禁止基于原始自然语言直接生成代码。只生成一个类，继承BaseImplementedStrategy，类中必须实现on_bar。"
     user_prompt = (
         f"策略ID固定为: {strategy_id}\n"
         f"策略名称固定为: {strategy_name}\n"
-        f"请基于以下策略模版生成代码：\n{template_text}\n\n"
+        f"StrategyIntent(JSON)：\n{json.dumps(intent, ensure_ascii=False, indent=2)}\n\n"
+        f"Intent解释：{intent_explain}\n\n"
         f"请尽量遵循以下代码骨架与风格约束：\n{str(code_template or '').strip()}\n\n"
-        "返回格式：先给简短分析，再给```python```代码块。代码需可直接运行于当前项目。"
+        "返回格式：先给Intent可解释性说明，再给```python```代码块。代码需可直接运行于当前项目。"
     )
     payload = {
         "model": model_name,
@@ -325,17 +340,27 @@ def _build_ai_analysis(template_text, strategy_id, strategy_name, code_template=
             return {
                 "analysis_text": "大模型返回内容未包含可执行代码，已回退默认策略代码。",
                 "code": fallback_code,
-                "class_name": fallback_class_name
+                "class_name": fallback_class_name,
+                "strategy_intent": intent,
+                "intent_explain": intent_explain
             }
         analysis_text = re.sub(r"```[\s\S]*?```", "", str(content or "")).strip()
         if not analysis_text:
             analysis_text = "已完成策略分析并生成可执行代码。"
-        return {"analysis_text": analysis_text, "code": code, "class_name": class_name}
+        return {
+            "analysis_text": analysis_text,
+            "code": code,
+            "class_name": class_name,
+            "strategy_intent": intent,
+            "intent_explain": intent_explain
+        }
     except Exception:
         return {
             "analysis_text": "大模型分析调用失败，已回退默认策略代码。",
             "code": fallback_code,
-            "class_name": fallback_class_name
+            "class_name": fallback_class_name,
+            "strategy_intent": intent,
+            "intent_explain": intent_explain
         }
 
 # --- Routes ---
@@ -396,14 +421,41 @@ async def api_strategy_manager_toggle(req: StrategyToggleRequest):
 async def api_strategy_manager_analyze(req: StrategyAnalyzeRequest):
     strategy_id = next_custom_strategy_id()
     strategy_name = str(req.strategy_name or f"AI策略{strategy_id}").strip()
-    result = _build_ai_analysis(req.template_text, strategy_id, strategy_name, req.code_template)
+    intent = intent_engine.from_human_input(req.template_text)
+    result = _build_ai_analysis(intent.to_dict(), strategy_id, strategy_name, req.code_template)
     return {
         "status": "success",
+        "source": "human",
+        "intent_stage": "中书省前置层",
         "strategy_id": strategy_id,
         "strategy_name": strategy_name,
+        "strategy_intent": result.get("strategy_intent", {}),
+        "intent_explain": result.get("intent_explain", ""),
         "analysis_text": result.get("analysis_text", ""),
         "code": result.get("code", ""),
-        "class_name": result.get("class_name", "")
+        "class_name": result.get("class_name", ""),
+        "cabinet_flow": ["中书省前置层(Intent)", "中书省(策略生成)", "门下省(风控)", "尚书省(执行)"]
+    }
+
+
+@app.post("/api/strategy_manager/analyze_market")
+async def api_strategy_manager_analyze_market(req: StrategyMarketAnalyzeRequest):
+    strategy_id = next_custom_strategy_id()
+    strategy_name = str(req.strategy_name or f"市场驱动策略{strategy_id}").strip()
+    intent = intent_engine.from_market_analysis(req.market_state)
+    result = _build_ai_analysis(intent.to_dict(), strategy_id, strategy_name, req.code_template)
+    return {
+        "status": "success",
+        "source": "market",
+        "intent_stage": "中书省前置层",
+        "strategy_id": strategy_id,
+        "strategy_name": strategy_name,
+        "strategy_intent": result.get("strategy_intent", {}),
+        "intent_explain": result.get("intent_explain", ""),
+        "analysis_text": result.get("analysis_text", ""),
+        "code": result.get("code", ""),
+        "class_name": result.get("class_name", ""),
+        "cabinet_flow": ["中书省前置层(Intent)", "中书省(策略生成)", "门下省(风控)", "尚书省(执行)"]
     }
 
 
@@ -411,13 +463,17 @@ async def api_strategy_manager_analyze(req: StrategyAnalyzeRequest):
 async def api_strategy_manager_add(req: StrategyAddRequest):
     try:
         class_name = _extract_first_class_name(req.code) or (req.class_name or "")
+        strategy_intent = req.strategy_intent
+        if not isinstance(strategy_intent, dict):
+            strategy_intent = intent_engine.from_human_input(req.template_text or req.analysis_text or req.strategy_name).to_dict()
         add_custom_strategy({
             "id": req.strategy_id,
             "name": req.strategy_name,
             "class_name": class_name,
             "code": req.code,
             "template_text": req.template_text or "",
-            "analysis_text": req.analysis_text or ""
+            "analysis_text": req.analysis_text or "",
+            "strategy_intent": strategy_intent
         })
         return {"status": "success"}
     except Exception as e:

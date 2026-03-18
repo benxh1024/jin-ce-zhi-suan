@@ -723,10 +723,17 @@
                 <div class="text-white font-bold"><i class="fa-solid fa-wand-magic-sparkles mr-2 text-cyan-300"></i>新增策略</div>
                 <button onclick="closeStrategyCreateModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="px-4 py-3 border-b border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="px-4 py-3 border-b border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <div class="text-xs text-slate-400 mb-1">策略名称</div>
                     <input id="strategy-create-name" type="text" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100" placeholder="例如：智能动量突破策略">
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 mb-1">策略来源</div>
+                    <select id="strategy-intent-source" onchange="setStrategyIntentSourceUI()" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm text-slate-100">
+                        <option value="human">Human-driven（用户输入）</option>
+                        <option value="market">Market-driven（行情驱动）</option>
+                    </select>
                 </div>
                 <div class="flex items-end gap-2">
                     <button onclick="analyzeStrategyTemplate()" class="bg-cyan-700 hover:bg-cyan-600 text-white px-3 py-1.5 rounded text-xs border border-cyan-500"><i class="fa-solid fa-robot mr-1"></i>智能分析</button>
@@ -737,6 +744,27 @@
                 <div class="border-r border-slate-700 p-3 flex flex-col gap-2">
                     <div class="text-xs text-slate-300">策略模版</div>
                     <textarea id="strategy-template-input" class="h-40 w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs font-mono text-slate-200" placeholder="请粘贴或输入你的策略思路、入场条件、离场条件、风控规则"></textarea>
+                    <div id="strategy-market-state-panel" class="hidden bg-slate-950 border border-slate-700 rounded p-2 space-y-2">
+                        <div class="text-xs text-slate-300">market_state</div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <select id="market-trend-input" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100">
+                                <option value="up">趋势: 上行</option>
+                                <option value="down">趋势: 下行</option>
+                                <option value="sideways">趋势: 震荡</option>
+                            </select>
+                            <select id="market-volatility-input" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100">
+                                <option value="low">波动: 低</option>
+                                <option value="medium">波动: 中</option>
+                                <option value="high">波动: 高</option>
+                            </select>
+                            <select id="market-momentum-input" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100">
+                                <option value="strong">动量: 强</option>
+                                <option value="neutral">动量: 中</option>
+                                <option value="weak">动量: 弱</option>
+                            </select>
+                        </div>
+                        <textarea id="market-summary-input" class="w-full h-16 bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-200" placeholder="可选：补充行情结构、板块轮动、事件冲击等"></textarea>
+                    </div>
                     <div class="text-xs text-slate-300">代码模版（供智能分析参考）</div>
                     <textarea id="strategy-code-template-input" class="flex-1 w-full bg-slate-950 border border-slate-700 rounded p-2 text-xs font-mono text-cyan-200" placeholder="可按项目规范调整代码骨架，帮助智能分析按模板产出"></textarea>
                 </div>
@@ -2321,7 +2349,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const modal = document.getElementById('strategy-create-modal');
             if (modal) modal.classList.remove('hidden');
             const status = document.getElementById('strategy-create-status');
-            if (status) status.innerText = '输入策略模版后点击智能分析';
+            if (status) status.innerText = '输入策略要素后点击智能分析';
             const analysis = document.getElementById('strategy-analysis-output');
             if (analysis) analysis.innerText = '';
             const code = document.getElementById('strategy-code-output');
@@ -2330,6 +2358,9 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             if (codeTpl && !String(codeTpl.value || '').trim()) codeTpl.value = STRATEGY_CODE_TEMPLATE_DEFAULT;
             const nameInput = document.getElementById('strategy-create-name');
             if (nameInput && !nameInput.value) nameInput.value = `智能策略${Date.now().toString().slice(-4)}`;
+            const sourceSelect = document.getElementById('strategy-intent-source');
+            if (sourceSelect && !sourceSelect.value) sourceSelect.value = 'human';
+            setStrategyIntentSourceUI();
         }
 
         function closeStrategyCreateModal() {
@@ -2337,28 +2368,68 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             if (modal) modal.classList.add('hidden');
         }
 
+        function setStrategyIntentSourceUI() {
+            const source = String(document.getElementById('strategy-intent-source')?.value || 'human');
+            const marketPanel = document.getElementById('strategy-market-state-panel');
+            const templateInput = document.getElementById('strategy-template-input');
+            const status = document.getElementById('strategy-create-status');
+            if (marketPanel) marketPanel.classList.toggle('hidden', source !== 'market');
+            if (templateInput) {
+                templateInput.placeholder = source === 'market'
+                    ? '可选：补充市场驱动策略意图说明（例如行业主线、风格偏好）'
+                    : '请粘贴或输入你的策略思路、入场条件、离场条件、风控规则';
+            }
+            if (status && !pendingGeneratedStrategy) {
+                status.innerText = source === 'market' ? '填写 market_state 后点击智能分析' : '输入策略模版后点击智能分析';
+            }
+        }
+
+        function collectMarketStateFromForm() {
+            const trend = String(document.getElementById('market-trend-input')?.value || 'sideways');
+            const volatility = String(document.getElementById('market-volatility-input')?.value || 'medium');
+            const momentum = String(document.getElementById('market-momentum-input')?.value || 'neutral');
+            const summary = String(document.getElementById('market-summary-input')?.value || '').trim();
+            return {
+                trend,
+                volatility,
+                momentum,
+                summary
+            };
+        }
+
         async function analyzeStrategyTemplate() {
             const tplInput = document.getElementById('strategy-template-input');
             const codeTplInput = document.getElementById('strategy-code-template-input');
             const nameInput = document.getElementById('strategy-create-name');
+            const sourceSelect = document.getElementById('strategy-intent-source');
             const status = document.getElementById('strategy-create-status');
+            const source = String(sourceSelect?.value || 'human');
             const templateText = String(tplInput?.value || '').trim();
             const codeTemplateText = String(codeTplInput?.value || '').trim();
             const strategyName = String(nameInput?.value || '').trim();
-            if (!templateText) {
+            if (source === 'human' && !templateText) {
                 if (status) status.innerText = '请先输入策略模版';
                 return;
             }
             try {
                 if (status) status.innerText = '智能分析中...';
-                const res = await fetch('/api/strategy_manager/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                const marketState = source === 'market' ? collectMarketStateFromForm() : null;
+                const endpoint = source === 'market' ? '/api/strategy_manager/analyze_market' : '/api/strategy_manager/analyze';
+                const payload = source === 'market'
+                    ? {
+                        market_state: marketState,
+                        strategy_name: strategyName || null,
+                        code_template: codeTemplateText || STRATEGY_CODE_TEMPLATE_DEFAULT
+                    }
+                    : {
                         template_text: templateText,
                         strategy_name: strategyName || null,
                         code_template: codeTemplateText || STRATEGY_CODE_TEMPLATE_DEFAULT
-                    })
+                    };
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (data.status !== 'success') throw new Error(data.msg || '智能分析失败');
@@ -2367,13 +2438,19 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     strategy_name: String(data.strategy_name || strategyName || ''),
                     class_name: String(data.class_name || ''),
                     analysis_text: String(data.analysis_text || ''),
-                    template_text: templateText
+                    template_text: templateText,
+                    source: source,
+                    strategy_intent: data.strategy_intent || {},
+                    intent_explain: String(data.intent_explain || '')
                 };
                 const analysis = document.getElementById('strategy-analysis-output');
-                if (analysis) analysis.innerText = pendingGeneratedStrategy.analysis_text || '已完成分析';
+                if (analysis) {
+                    const explainPart = pendingGeneratedStrategy.intent_explain ? `Intent解释：${pendingGeneratedStrategy.intent_explain}\n\n` : '';
+                    analysis.innerText = `${explainPart}${pendingGeneratedStrategy.analysis_text || '已完成分析'}`;
+                }
                 const code = document.getElementById('strategy-code-output');
                 if (code) code.value = String(data.code || '');
-                if (status) status.innerText = `已生成策略 ${pendingGeneratedStrategy.strategy_id}`;
+                if (status) status.innerText = `已生成策略 ${pendingGeneratedStrategy.strategy_id}（${source === 'market' ? 'market' : 'human'}）`;
             } catch (e) {
                 if (status) status.innerText = `智能分析失败: ${e}`;
             }
@@ -2408,7 +2485,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                         class_name: pendingGeneratedStrategy.class_name || null,
                         code: codeText,
                         template_text: pendingGeneratedStrategy.template_text || '',
-                        analysis_text: pendingGeneratedStrategy.analysis_text || ''
+                        analysis_text: pendingGeneratedStrategy.analysis_text || '',
+                        strategy_intent: pendingGeneratedStrategy.strategy_intent || null
                     })
                 });
                 const data = await res.json();
