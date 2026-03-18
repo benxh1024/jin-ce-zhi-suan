@@ -1,6 +1,1853 @@
 {
   "reports": [
     {
+      "report_id": "1773850851294-52db",
+      "created_at": "2026-03-19T00:20:51",
+      "stock_code": "002506.SZ",
+      "strategy_id": "01",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "01",
+        "strategy_ids": [
+          "01",
+          "02",
+          "05",
+          "06",
+          "10"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-03-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-03-01",
+        "ranking": [
+          {
+            "strategy_id": "01",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "02",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "10",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "05",
+            "total_pnl": -224.4649999999898,
+            "roi": -0.001122324999999949,
+            "annualized_roi": -0.004705307362260491,
+            "max_dd": 0.01004152499999997,
+            "win_rate": 0.3333333333333333,
+            "profit_factor": 1.7764632364108137,
+            "total_trades": 3,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 3,
+            "calmar": -0.4685849372740202,
+            "sharpe": 0.0,
+            "rank": 4,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "06",
+            "total_pnl": -3876.821999999826,
+            "roi": -0.01938410999999913,
+            "annualized_roi": -0.07892394851419471,
+            "max_dd": 0.020422289999999184,
+            "win_rate": 0.3,
+            "profit_factor": 0.9873109280918392,
+            "total_trades": 70,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 3,
+            "calmar": -3.864598363562454,
+            "sharpe": 0.0,
+            "rank": 5,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 73
+      },
+      "ranking": [
+        {
+          "strategy_id": "01",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "02",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "10",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "05",
+          "total_pnl": -224.4649999999898,
+          "roi": -0.001122324999999949,
+          "annualized_roi": -0.004705307362260491,
+          "max_dd": 0.01004152499999997,
+          "win_rate": 0.3333333333333333,
+          "profit_factor": 1.7764632364108137,
+          "total_trades": 3,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 3,
+          "calmar": -0.4685849372740202,
+          "sharpe": 0.0,
+          "rank": 4,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "06",
+          "total_pnl": -3876.821999999826,
+          "roi": -0.01938410999999913,
+          "annualized_roi": -0.07892394851419471,
+          "max_dd": 0.020422289999999184,
+          "win_rate": 0.3,
+          "profit_factor": 0.9873109280918392,
+          "total_trades": 70,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 3,
+          "calmar": -3.864598363562454,
+          "sharpe": 0.0,
+          "rank": 5,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "01": {
+          "strategy_id": "01",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 200000.0,
+          "end_capital": 200000.0,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        },
+        "02": {
+          "strategy_id": "02",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 200000.0,
+          "end_capital": 200000.0,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        },
+        "05": {
+          "strategy_id": "05",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 200000.0,
+          "end_capital": 199775.535,
+          "total_return": -0.0011223249999999796,
+          "annual_return": -0.004705307362260491,
+          "max_drawdown": -0.010041524999999964,
+          "trade_count": 3,
+          "win_num": 1,
+          "loss_num": 2,
+          "win_rate": 0.3333333333333333,
+          "avg_win": 1783.8400000000042,
+          "avg_loss": 1004.152499999997,
+          "profit_ratio": 1.7764632364108137,
+          "trade_details": [
+            {
+              "dt": "2024-01-09 14:30:00",
+              "direction": "BUY",
+              "price": 2.7127099999999995,
+              "quantity": 7300,
+              "amount": 19802.782999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-18 09:30:00",
+              "direction": "SELL",
+              "price": 2.57742,
+              "quantity": 7300,
+              "amount": 18815.166,
+              "cost": 23.0,
+              "pnl": -1010.6169999999961
+            },
+            {
+              "dt": "2024-01-25 15:00:00",
+              "direction": "BUY",
+              "price": 2.54254,
+              "quantity": 7800,
+              "amount": 19831.811999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 14:32:00",
+              "direction": "SELL",
+              "price": 2.41758,
+              "quantity": 7800,
+              "amount": 18857.124,
+              "cost": 23.0,
+              "pnl": -997.6879999999979
+            },
+            {
+              "dt": "2024-02-07 09:30:00",
+              "direction": "BUY",
+              "price": 2.3423399999999996,
+              "quantity": 8400,
+              "amount": 19675.655999999995,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 09:33:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 8400,
+              "amount": 21482.496000000003,
+              "cost": 23.0,
+              "pnl": 1783.8400000000042
+            },
+            {
+              "dt": "2024-02-21 13:30:00",
+              "direction": "BUY",
+              "price": 2.5825799999999997,
+              "quantity": 7700,
+              "amount": 19885.865999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            }
+          ]
+        },
+        "06": {
+          "strategy_id": "06",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 200000.0,
+          "end_capital": 196123.17800000016,
+          "total_return": -0.019384109999999177,
+          "annual_return": -0.07892394851419471,
+          "max_drawdown": -0.02042228999999905,
+          "trade_count": 70,
+          "win_num": 21,
+          "loss_num": 49,
+          "win_rate": 0.3,
+          "avg_win": 135.41233333333565,
+          "avg_loss": 137.15267346938518,
+          "profit_ratio": 0.9873109280918392,
+          "trade_details": [
+            {
+              "dt": "2024-01-02 10:37:00",
+              "direction": "BUY",
+              "price": 2.74274,
+              "quantity": 7200,
+              "amount": 19747.728,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-02 14:25:00",
+              "direction": "SELL",
+              "price": 2.72727,
+              "quantity": 7200,
+              "amount": 19636.343999999997,
+              "cost": 23.0,
+              "pnl": -134.3840000000007
+            },
+            {
+              "dt": "2024-01-03 11:00:00",
+              "direction": "BUY",
+              "price": 2.7127099999999995,
+              "quantity": 7300,
+              "amount": 19802.782999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-03 13:09:00",
+              "direction": "SELL",
+              "price": 2.70729,
+              "quantity": 7300,
+              "amount": 19763.217,
+              "cost": 23.0,
+              "pnl": -62.56599999999661
+            },
+            {
+              "dt": "2024-01-03 14:19:00",
+              "direction": "BUY",
+              "price": 2.7027,
+              "quantity": 7300,
+              "amount": 19729.71,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-04 09:30:00",
+              "direction": "SELL",
+              "price": 2.6973000000000003,
+              "quantity": 7300,
+              "amount": 19690.29,
+              "cost": 23.0,
+              "pnl": -62.4199999999989
+            },
+            {
+              "dt": "2024-01-04 13:18:00",
+              "direction": "BUY",
+              "price": 2.6726699999999997,
+              "quantity": 7400,
+              "amount": 19777.757999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-05 09:55:00",
+              "direction": "SELL",
+              "price": 2.6973000000000003,
+              "quantity": 7400,
+              "amount": 19960.02,
+              "cost": 23.0,
+              "pnl": 159.2620000000044
+            },
+            {
+              "dt": "2024-01-05 14:09:00",
+              "direction": "BUY",
+              "price": 2.66266,
+              "quantity": 7500,
+              "amount": 19969.949999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-05 14:36:00",
+              "direction": "SELL",
+              "price": 2.63736,
+              "quantity": 7500,
+              "amount": 19780.2,
+              "cost": 23.0,
+              "pnl": -212.7499999999974
+            },
+            {
+              "dt": "2024-01-08 09:40:00",
+              "direction": "BUY",
+              "price": 2.6426399999999997,
+              "quantity": 7500,
+              "amount": 19819.799999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-08 09:51:00",
+              "direction": "SELL",
+              "price": 2.64735,
+              "quantity": 7500,
+              "amount": 19855.125,
+              "cost": 23.0,
+              "pnl": 12.325000000004934
+            },
+            {
+              "dt": "2024-01-08 13:57:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 7500,
+              "amount": 19669.649999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-08 14:27:00",
+              "direction": "SELL",
+              "price": 2.64735,
+              "quantity": 7500,
+              "amount": 19855.125,
+              "cost": 23.0,
+              "pnl": 162.47500000000272
+            },
+            {
+              "dt": "2024-01-09 14:56:00",
+              "direction": "BUY",
+              "price": 2.72272,
+              "quantity": 7300,
+              "amount": 19875.856,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-10 09:30:00",
+              "direction": "SELL",
+              "price": 2.6973000000000003,
+              "quantity": 7300,
+              "amount": 19690.29,
+              "cost": 23.0,
+              "pnl": -208.56599999999673
+            },
+            {
+              "dt": "2024-01-10 10:11:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 6900,
+              "amount": 19201.181999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-10 10:11:00",
+              "direction": "SELL",
+              "price": 2.77722,
+              "quantity": 6900,
+              "amount": 19162.818,
+              "cost": 23.0,
+              "pnl": -61.363999999997
+            },
+            {
+              "dt": "2024-01-10 10:48:00",
+              "direction": "BUY",
+              "price": 2.8228199999999997,
+              "quantity": 7000,
+              "amount": 19759.739999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-10 10:53:00",
+              "direction": "SELL",
+              "price": 2.7971999999999997,
+              "quantity": 7000,
+              "amount": 19580.399999999998,
+              "cost": 23.0,
+              "pnl": -202.33999999999983
+            },
+            {
+              "dt": "2024-01-10 14:13:00",
+              "direction": "BUY",
+              "price": 2.8027999999999995,
+              "quantity": 7100,
+              "amount": 19899.879999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-10 14:54:00",
+              "direction": "SELL",
+              "price": 2.78721,
+              "quantity": 7100,
+              "amount": 19789.191,
+              "cost": 23.0,
+              "pnl": -133.68899999999678
+            },
+            {
+              "dt": "2024-01-11 13:05:00",
+              "direction": "BUY",
+              "price": 2.7327299999999997,
+              "quantity": 7200,
+              "amount": 19675.656,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-11 13:25:00",
+              "direction": "SELL",
+              "price": 2.74725,
+              "quantity": 7200,
+              "amount": 19780.2,
+              "cost": 23.0,
+              "pnl": 81.54400000000383
+            },
+            {
+              "dt": "2024-01-11 13:42:00",
+              "direction": "BUY",
+              "price": 2.7727699999999995,
+              "quantity": 7100,
+              "amount": 19686.666999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-11 13:57:00",
+              "direction": "SELL",
+              "price": 2.75724,
+              "quantity": 7100,
+              "amount": 19576.404,
+              "cost": 23.0,
+              "pnl": -133.26299999999716
+            },
+            {
+              "dt": "2024-01-11 14:41:00",
+              "direction": "BUY",
+              "price": 2.7627599999999997,
+              "quantity": 7200,
+              "amount": 19891.871999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-12 09:30:00",
+              "direction": "SELL",
+              "price": 2.72727,
+              "quantity": 7200,
+              "amount": 19636.343999999997,
+              "cost": 23.0,
+              "pnl": -278.52799999999536
+            },
+            {
+              "dt": "2024-01-12 10:06:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 7100,
+              "amount": 19757.737999999994,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-12 10:15:00",
+              "direction": "SELL",
+              "price": 2.76723,
+              "quantity": 7100,
+              "amount": 19647.333000000002,
+              "cost": 23.0,
+              "pnl": -133.40499999999494
+            },
+            {
+              "dt": "2024-01-12 10:24:00",
+              "direction": "BUY",
+              "price": 2.7927899999999997,
+              "quantity": 7100,
+              "amount": 19828.808999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-12 10:36:00",
+              "direction": "SELL",
+              "price": 2.77722,
+              "quantity": 7100,
+              "amount": 19718.262,
+              "cost": 23.0,
+              "pnl": -133.546999999999
+            },
+            {
+              "dt": "2024-01-12 14:22:00",
+              "direction": "BUY",
+              "price": 2.74274,
+              "quantity": 7200,
+              "amount": 19747.728,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-12 14:47:00",
+              "direction": "SELL",
+              "price": 2.73726,
+              "quantity": 7200,
+              "amount": 19708.272,
+              "cost": 23.0,
+              "pnl": -62.45599999999949
+            },
+            {
+              "dt": "2024-01-15 11:07:00",
+              "direction": "BUY",
+              "price": 2.72272,
+              "quantity": 7200,
+              "amount": 19603.584,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-15 13:39:00",
+              "direction": "SELL",
+              "price": 2.70729,
+              "quantity": 7200,
+              "amount": 19492.488,
+              "cost": 23.0,
+              "pnl": -134.0959999999988
+            },
+            {
+              "dt": "2024-01-16 09:48:00",
+              "direction": "BUY",
+              "price": 2.7127099999999995,
+              "quantity": 7200,
+              "amount": 19531.511999999995,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-16 09:51:00",
+              "direction": "SELL",
+              "price": 2.72727,
+              "quantity": 7200,
+              "amount": 19636.343999999997,
+              "cost": 23.0,
+              "pnl": 81.83200000000252
+            },
+            {
+              "dt": "2024-01-16 14:41:00",
+              "direction": "BUY",
+              "price": 2.7027,
+              "quantity": 7300,
+              "amount": 19729.71,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-17 09:31:00",
+              "direction": "SELL",
+              "price": 2.70729,
+              "quantity": 7300,
+              "amount": 19763.217,
+              "cost": 23.0,
+              "pnl": 10.506999999999067
+            },
+            {
+              "dt": "2024-01-17 14:02:00",
+              "direction": "BUY",
+              "price": 2.6426399999999997,
+              "quantity": 7500,
+              "amount": 19819.799999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-17 14:37:00",
+              "direction": "SELL",
+              "price": 2.6173800000000003,
+              "quantity": 7500,
+              "amount": 19630.350000000002,
+              "cost": 23.0,
+              "pnl": -212.44999999999212
+            },
+            {
+              "dt": "2024-01-18 09:46:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 7500,
+              "amount": 19669.649999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-18 10:04:00",
+              "direction": "SELL",
+              "price": 2.62737,
+              "quantity": 7500,
+              "amount": 19705.275,
+              "cost": 23.0,
+              "pnl": 12.625000000003567
+            },
+            {
+              "dt": "2024-01-18 10:06:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 7500,
+              "amount": 19669.649999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-18 10:14:00",
+              "direction": "SELL",
+              "price": 2.6173800000000003,
+              "quantity": 7500,
+              "amount": 19630.350000000002,
+              "cost": 23.0,
+              "pnl": -62.29999999999434
+            },
+            {
+              "dt": "2024-01-18 14:21:00",
+              "direction": "BUY",
+              "price": 2.5925899999999995,
+              "quantity": 7600,
+              "amount": 19703.683999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-19 09:31:00",
+              "direction": "SELL",
+              "price": 2.6173800000000003,
+              "quantity": 7600,
+              "amount": 19892.088000000003,
+              "cost": 23.0,
+              "pnl": 165.40400000000574
+            },
+            {
+              "dt": "2024-01-19 14:36:00",
+              "direction": "BUY",
+              "price": 2.6026,
+              "quantity": 7600,
+              "amount": 19779.76,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-22 09:30:00",
+              "direction": "SELL",
+              "price": 2.56743,
+              "quantity": 7600,
+              "amount": 19512.468,
+              "cost": 23.0,
+              "pnl": -290.2919999999994
+            },
+            {
+              "dt": "2024-01-22 13:47:00",
+              "direction": "BUY",
+              "price": 2.48248,
+              "quantity": 7900,
+              "amount": 19611.591999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-22 14:17:00",
+              "direction": "SELL",
+              "price": 2.46753,
+              "quantity": 7900,
+              "amount": 19493.487,
+              "cost": 23.0,
+              "pnl": -141.1049999999984
+            },
+            {
+              "dt": "2024-01-23 10:32:00",
+              "direction": "BUY",
+              "price": 2.49249,
+              "quantity": 7800,
+              "amount": 19441.422000000002,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-23 11:00:00",
+              "direction": "SELL",
+              "price": 2.47752,
+              "quantity": 7800,
+              "amount": 19324.656000000003,
+              "cost": 23.0,
+              "pnl": -139.76599999999945
+            },
+            {
+              "dt": "2024-01-23 14:32:00",
+              "direction": "BUY",
+              "price": 2.5024999999999995,
+              "quantity": 7800,
+              "amount": 19519.499999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-24 10:01:00",
+              "direction": "SELL",
+              "price": 2.4875100000000003,
+              "quantity": 7800,
+              "amount": 19402.578,
+              "cost": 23.0,
+              "pnl": -139.92199999999355
+            },
+            {
+              "dt": "2024-01-24 13:51:00",
+              "direction": "BUY",
+              "price": 2.4624599999999996,
+              "quantity": 7900,
+              "amount": 19453.433999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-25 09:31:00",
+              "direction": "SELL",
+              "price": 2.5074899999999998,
+              "quantity": 7900,
+              "amount": 19809.171,
+              "cost": 23.0,
+              "pnl": 332.737000000001
+            },
+            {
+              "dt": "2024-01-25 11:17:00",
+              "direction": "BUY",
+              "price": 2.5225199999999997,
+              "quantity": 7800,
+              "amount": 19675.656,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-26 09:31:00",
+              "direction": "SELL",
+              "price": 2.5274699999999997,
+              "quantity": 7800,
+              "amount": 19714.265999999996,
+              "cost": 23.0,
+              "pnl": 15.609999999996617
+            },
+            {
+              "dt": "2024-01-26 11:07:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 7700,
+              "amount": 19654.635,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-26 14:33:00",
+              "direction": "SELL",
+              "price": 2.53746,
+              "quantity": 7700,
+              "amount": 19538.442,
+              "cost": 23.0,
+              "pnl": -139.19299999999868
+            },
+            {
+              "dt": "2024-01-29 14:31:00",
+              "direction": "BUY",
+              "price": 2.48248,
+              "quantity": 7900,
+              "amount": 19611.591999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-29 14:53:00",
+              "direction": "SELL",
+              "price": 2.46753,
+              "quantity": 7900,
+              "amount": 19493.487,
+              "cost": 23.0,
+              "pnl": -141.1049999999984
+            },
+            {
+              "dt": "2024-01-30 10:20:00",
+              "direction": "BUY",
+              "price": 2.47247,
+              "quantity": 7900,
+              "amount": 19532.513,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 10:27:00",
+              "direction": "SELL",
+              "price": 2.46753,
+              "quantity": 7900,
+              "amount": 19493.487,
+              "cost": 23.0,
+              "pnl": -62.02599999999956
+            },
+            {
+              "dt": "2024-01-30 13:51:00",
+              "direction": "BUY",
+              "price": 2.4424399999999995,
+              "quantity": 8000,
+              "amount": 19539.519999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 14:21:00",
+              "direction": "SELL",
+              "price": 2.4275700000000002,
+              "quantity": 8000,
+              "amount": 19420.56,
+              "cost": 23.0,
+              "pnl": -141.95999999999418
+            },
+            {
+              "dt": "2024-01-31 11:24:00",
+              "direction": "BUY",
+              "price": 2.43243,
+              "quantity": 8000,
+              "amount": 19459.440000000002,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-31 13:10:00",
+              "direction": "SELL",
+              "price": 2.41758,
+              "quantity": 8000,
+              "amount": 19340.64,
+              "cost": 23.0,
+              "pnl": -141.80000000000024
+            },
+            {
+              "dt": "2024-01-31 13:36:00",
+              "direction": "BUY",
+              "price": 2.42242,
+              "quantity": 8000,
+              "amount": 19379.359999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-01 09:30:00",
+              "direction": "SELL",
+              "price": 2.37762,
+              "quantity": 8000,
+              "amount": 19020.96,
+              "cost": 23.0,
+              "pnl": -381.39999999999964
+            },
+            {
+              "dt": "2024-02-02 09:34:00",
+              "direction": "BUY",
+              "price": 2.4023999999999996,
+              "quantity": 8100,
+              "amount": 19459.44,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-02 09:36:00",
+              "direction": "SELL",
+              "price": 2.38761,
+              "quantity": 8100,
+              "amount": 19339.641,
+              "cost": 23.0,
+              "pnl": -142.79899999999705
+            },
+            {
+              "dt": "2024-02-05 11:26:00",
+              "direction": "BUY",
+              "price": 2.1321299999999996,
+              "quantity": 9200,
+              "amount": 19615.595999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-05 13:03:00",
+              "direction": "SELL",
+              "price": 2.11788,
+              "quantity": 9200,
+              "amount": 19484.496,
+              "cost": 23.0,
+              "pnl": -154.09999999999678
+            },
+            {
+              "dt": "2024-02-05 13:56:00",
+              "direction": "BUY",
+              "price": 2.22222,
+              "quantity": 8700,
+              "amount": 19333.314000000002,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-05 14:02:00",
+              "direction": "SELL",
+              "price": 2.2177800000000003,
+              "quantity": 8700,
+              "amount": 19294.686,
+              "cost": 23.0,
+              "pnl": -61.62799999999807
+            },
+            {
+              "dt": "2024-02-07 09:30:00",
+              "direction": "BUY",
+              "price": 2.3423399999999996,
+              "quantity": 8300,
+              "amount": 19441.422,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-07 09:30:00",
+              "direction": "SELL",
+              "price": 2.33766,
+              "quantity": 8300,
+              "amount": 19402.578,
+              "cost": 23.0,
+              "pnl": -61.843999999996456
+            },
+            {
+              "dt": "2024-02-07 09:45:00",
+              "direction": "BUY",
+              "price": 2.42242,
+              "quantity": 8000,
+              "amount": 19379.359999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-07 10:04:00",
+              "direction": "SELL",
+              "price": 2.44755,
+              "quantity": 8000,
+              "amount": 19580.4,
+              "cost": 23.0,
+              "pnl": 178.04000000000255
+            },
+            {
+              "dt": "2024-02-07 10:18:00",
+              "direction": "BUY",
+              "price": 2.45245,
+              "quantity": 7900,
+              "amount": 19374.355,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-07 10:23:00",
+              "direction": "SELL",
+              "price": 2.45754,
+              "quantity": 7900,
+              "amount": 19414.566,
+              "cost": 23.0,
+              "pnl": 17.21100000000031
+            },
+            {
+              "dt": "2024-02-07 10:51:00",
+              "direction": "BUY",
+              "price": 2.48248,
+              "quantity": 7800,
+              "amount": 19363.343999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-07 10:55:00",
+              "direction": "SELL",
+              "price": 2.47752,
+              "quantity": 7800,
+              "amount": 19324.656000000003,
+              "cost": 23.0,
+              "pnl": -61.687999999997125
+            },
+            {
+              "dt": "2024-02-07 11:00:00",
+              "direction": "BUY",
+              "price": 2.48248,
+              "quantity": 7800,
+              "amount": 19363.343999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-07 11:09:00",
+              "direction": "SELL",
+              "price": 2.4975,
+              "quantity": 7800,
+              "amount": 19480.5,
+              "cost": 23.0,
+              "pnl": 94.156000000002
+            },
+            {
+              "dt": "2024-02-07 13:13:00",
+              "direction": "BUY",
+              "price": 2.5325299999999995,
+              "quantity": 7700,
+              "amount": 19500.480999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-07 13:25:00",
+              "direction": "SELL",
+              "price": 2.5074899999999998,
+              "quantity": 7700,
+              "amount": 19307.673,
+              "cost": 23.0,
+              "pnl": -215.80799999999792
+            },
+            {
+              "dt": "2024-02-08 09:33:00",
+              "direction": "BUY",
+              "price": 2.56256,
+              "quantity": 7500,
+              "amount": 19219.2,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 09:33:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 7500,
+              "amount": 19180.800000000003,
+              "cost": 23.0,
+              "pnl": -61.399999999998435
+            },
+            {
+              "dt": "2024-02-08 10:00:00",
+              "direction": "BUY",
+              "price": 2.6126099999999997,
+              "quantity": 7400,
+              "amount": 19333.314,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 10:08:00",
+              "direction": "SELL",
+              "price": 2.62737,
+              "quantity": 7400,
+              "amount": 19442.538,
+              "cost": 23.0,
+              "pnl": 86.22400000000243
+            },
+            {
+              "dt": "2024-02-08 10:28:00",
+              "direction": "BUY",
+              "price": 2.6526499999999995,
+              "quantity": 7300,
+              "amount": 19364.344999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 10:35:00",
+              "direction": "SELL",
+              "price": 2.6173800000000003,
+              "quantity": 7300,
+              "amount": 19106.874000000003,
+              "cost": 23.0,
+              "pnl": -280.4709999999945
+            },
+            {
+              "dt": "2024-02-08 10:46:00",
+              "direction": "BUY",
+              "price": 2.6426399999999997,
+              "quantity": 7300,
+              "amount": 19291.271999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 10:59:00",
+              "direction": "SELL",
+              "price": 2.63736,
+              "quantity": 7300,
+              "amount": 19252.728000000003,
+              "cost": 23.0,
+              "pnl": -61.5439999999964
+            },
+            {
+              "dt": "2024-02-08 14:25:00",
+              "direction": "BUY",
+              "price": 2.5725699999999994,
+              "quantity": 7500,
+              "amount": 19294.274999999994,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 14:34:00",
+              "direction": "SELL",
+              "price": 2.54745,
+              "quantity": 7500,
+              "amount": 19105.875,
+              "cost": 23.0,
+              "pnl": -211.39999999999523
+            },
+            {
+              "dt": "2024-02-19 09:56:00",
+              "direction": "BUY",
+              "price": 2.54254,
+              "quantity": 7600,
+              "amount": 19323.304,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-19 10:40:00",
+              "direction": "SELL",
+              "price": 2.56743,
+              "quantity": 7600,
+              "amount": 19512.468,
+              "cost": 23.0,
+              "pnl": 166.1640000000006
+            },
+            {
+              "dt": "2024-02-19 14:30:00",
+              "direction": "BUY",
+              "price": 2.5325299999999995,
+              "quantity": 7600,
+              "amount": 19247.227999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-20 09:31:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 7600,
+              "amount": 19436.544,
+              "cost": 23.0,
+              "pnl": 166.31600000000498
+            },
+            {
+              "dt": "2024-02-20 09:59:00",
+              "direction": "BUY",
+              "price": 2.5325299999999995,
+              "quantity": 7600,
+              "amount": 19247.227999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-20 10:45:00",
+              "direction": "SELL",
+              "price": 2.51748,
+              "quantity": 7600,
+              "amount": 19132.847999999998,
+              "cost": 23.0,
+              "pnl": -137.3799999999967
+            },
+            {
+              "dt": "2024-02-20 13:21:00",
+              "direction": "BUY",
+              "price": 2.54254,
+              "quantity": 7600,
+              "amount": 19323.304,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-21 09:31:00",
+              "direction": "SELL",
+              "price": 2.5274699999999997,
+              "quantity": 7600,
+              "amount": 19208.771999999997,
+              "cost": 23.0,
+              "pnl": -137.53200000000106
+            },
+            {
+              "dt": "2024-02-21 10:21:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 7600,
+              "amount": 19399.379999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-21 13:25:00",
+              "direction": "SELL",
+              "price": 2.57742,
+              "quantity": 7600,
+              "amount": 19588.392,
+              "cost": 23.0,
+              "pnl": 166.01200000000298
+            },
+            {
+              "dt": "2024-02-21 13:35:00",
+              "direction": "BUY",
+              "price": 2.5825799999999997,
+              "quantity": 7500,
+              "amount": 19369.35,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-21 14:07:00",
+              "direction": "SELL",
+              "price": 2.56743,
+              "quantity": 7500,
+              "amount": 19255.725,
+              "cost": 23.0,
+              "pnl": -136.6249999999983
+            },
+            {
+              "dt": "2024-02-22 09:50:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 7500,
+              "amount": 19144.124999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-22 09:56:00",
+              "direction": "SELL",
+              "price": 2.54745,
+              "quantity": 7500,
+              "amount": 19105.875,
+              "cost": 23.0,
+              "pnl": -61.249999999997456
+            },
+            {
+              "dt": "2024-02-22 10:54:00",
+              "direction": "BUY",
+              "price": 2.5325299999999995,
+              "quantity": 7600,
+              "amount": 19247.227999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-22 14:03:00",
+              "direction": "SELL",
+              "price": 2.5274699999999997,
+              "quantity": 7600,
+              "amount": 19208.771999999997,
+              "cost": 23.0,
+              "pnl": -61.4559999999988
+            },
+            {
+              "dt": "2024-02-22 14:52:00",
+              "direction": "BUY",
+              "price": 2.54254,
+              "quantity": 7600,
+              "amount": 19323.304,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-23 09:36:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 7600,
+              "amount": 19436.544,
+              "cost": 23.0,
+              "pnl": 90.24000000000271
+            },
+            {
+              "dt": "2024-02-23 11:15:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 7600,
+              "amount": 19399.379999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-26 09:35:00",
+              "direction": "SELL",
+              "price": 2.57742,
+              "quantity": 7600,
+              "amount": 19588.392,
+              "cost": 23.0,
+              "pnl": 166.01200000000298
+            },
+            {
+              "dt": "2024-02-26 09:45:00",
+              "direction": "BUY",
+              "price": 2.5725699999999994,
+              "quantity": 7500,
+              "amount": 19294.274999999994,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-26 10:01:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 7500,
+              "amount": 19180.800000000003,
+              "cost": 23.0,
+              "pnl": -136.474999999994
+            },
+            {
+              "dt": "2024-02-26 11:24:00",
+              "direction": "BUY",
+              "price": 2.6126099999999997,
+              "quantity": 7400,
+              "amount": 19333.314,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-26 14:05:00",
+              "direction": "SELL",
+              "price": 2.6073899999999997,
+              "quantity": 7400,
+              "amount": 19294.685999999998,
+              "cost": 23.0,
+              "pnl": -61.628000000000014
+            },
+            {
+              "dt": "2024-02-26 14:46:00",
+              "direction": "BUY",
+              "price": 2.6026,
+              "quantity": 7400,
+              "amount": 19259.239999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-27 09:31:00",
+              "direction": "SELL",
+              "price": 2.5974,
+              "quantity": 7400,
+              "amount": 19220.76,
+              "cost": 23.0,
+              "pnl": -61.47999999999905
+            },
+            {
+              "dt": "2024-02-27 09:45:00",
+              "direction": "BUY",
+              "price": 2.6126099999999997,
+              "quantity": 7400,
+              "amount": 19333.314,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-27 10:53:00",
+              "direction": "SELL",
+              "price": 2.6073899999999997,
+              "quantity": 7400,
+              "amount": 19294.685999999998,
+              "cost": 23.0,
+              "pnl": -61.628000000000014
+            },
+            {
+              "dt": "2024-02-27 11:09:00",
+              "direction": "BUY",
+              "price": 2.63263,
+              "quantity": 7300,
+              "amount": 19218.198999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-27 13:41:00",
+              "direction": "SELL",
+              "price": 2.6173800000000003,
+              "quantity": 7300,
+              "amount": 19106.874000000003,
+              "cost": 23.0,
+              "pnl": -134.3249999999934
+            },
+            {
+              "dt": "2024-02-27 14:17:00",
+              "direction": "BUY",
+              "price": 2.63263,
+              "quantity": 7300,
+              "amount": 19218.198999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-28 09:35:00",
+              "direction": "SELL",
+              "price": 2.6673299999999998,
+              "quantity": 7300,
+              "amount": 19471.509,
+              "cost": 23.0,
+              "pnl": 230.3100000000029
+            },
+            {
+              "dt": "2024-02-28 09:41:00",
+              "direction": "BUY",
+              "price": 2.66266,
+              "quantity": 7300,
+              "amount": 19437.417999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-28 10:01:00",
+              "direction": "SELL",
+              "price": 2.72727,
+              "quantity": 7300,
+              "amount": 19909.071,
+              "cost": 23.0,
+              "pnl": 448.6530000000004
+            },
+            {
+              "dt": "2024-02-28 10:26:00",
+              "direction": "BUY",
+              "price": 2.72272,
+              "quantity": 7100,
+              "amount": 19331.311999999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-28 10:40:00",
+              "direction": "SELL",
+              "price": 2.6973000000000003,
+              "quantity": 7100,
+              "amount": 19150.83,
+              "cost": 23.0,
+              "pnl": -203.48199999999684
+            },
+            {
+              "dt": "2024-02-28 13:27:00",
+              "direction": "BUY",
+              "price": 2.68268,
+              "quantity": 7200,
+              "amount": 19315.296,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-28 13:34:00",
+              "direction": "SELL",
+              "price": 2.6673299999999998,
+              "quantity": 7200,
+              "amount": 19204.775999999998,
+              "cost": 23.0,
+              "pnl": -133.5200000000014
+            },
+            {
+              "dt": "2024-02-29 10:37:00",
+              "direction": "BUY",
+              "price": 2.63263,
+              "quantity": 7300,
+              "amount": 19218.198999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-29 11:04:00",
+              "direction": "SELL",
+              "price": 2.6173800000000003,
+              "quantity": 7300,
+              "amount": 19106.874000000003,
+              "cost": 23.0,
+              "pnl": -134.3249999999934
+            },
+            {
+              "dt": "2024-02-29 13:26:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 7400,
+              "amount": 19407.388,
+              "cost": 23.0,
+              "pnl": 0.0
+            }
+          ]
+        },
+        "10": {
+          "strategy_id": "10",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 200000.0,
+          "end_capital": 200000.0,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        }
+      },
+      "finished_at": "2026-03-19T00:22:23"
+    },
+    {
+      "report_id": "1773850318778-818d",
+      "created_at": "2026-03-19T00:11:58",
+      "stock_code": "002506.SZ",
+      "strategy_id": "01",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "01",
+        "strategy_ids": [
+          "01",
+          "05"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-03-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-03-01",
+        "ranking": [
+          {
+            "strategy_id": "01",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 1,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "05",
+            "total_pnl": -117.91899999997429,
+            "roi": -0.00023583799999994857,
+            "annualized_roi": -0.0009901459011784075,
+            "max_dd": 0.007234217999999967,
+            "win_rate": 0.25,
+            "profit_factor": 2.9236527925043907,
+            "total_trades": 4,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 2,
+            "calmar": -0.13686979037380573,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 4
+      },
+      "ranking": [
+        {
+          "strategy_id": "01",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 1,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "05",
+          "total_pnl": -117.91899999997429,
+          "roi": -0.00023583799999994857,
+          "annualized_roi": -0.0009901459011784075,
+          "max_dd": 0.007234217999999967,
+          "win_rate": 0.25,
+          "profit_factor": 2.9236527925043907,
+          "total_trades": 4,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 2,
+          "calmar": -0.13686979037380573,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "01": {
+          "strategy_id": "01",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 500000.0,
+          "end_capital": 500000.0,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        },
+        "05": {
+          "strategy_id": "05",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 500000.0,
+          "end_capital": 499882.081,
+          "total_return": -0.00023583800000004373,
+          "annual_return": -0.0009901459011789626,
+          "max_drawdown": -0.007234217999999994,
+          "trade_count": 4,
+          "win_num": 1,
+          "loss_num": 3,
+          "win_rate": 0.25,
+          "avg_win": 4515.610000000011,
+          "avg_loss": 1544.5096666666616,
+          "profit_ratio": 2.9236527925043907,
+          "trade_details": [
+            {
+              "dt": "2024-01-08 14:32:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 17900,
+              "amount": 49811.76199999999,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-15 14:27:00",
+              "direction": "SELL",
+              "price": 2.68731,
+              "quantity": 17900,
+              "amount": 48102.849,
+              "cost": 23.0,
+              "pnl": -1731.912999999987
+            },
+            {
+              "dt": "2024-01-26 09:37:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 19600,
+              "amount": 50029.979999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 09:30:00",
+              "direction": "SELL",
+              "price": 2.45754,
+              "quantity": 19600,
+              "amount": 48167.784,
+              "cost": 23.0,
+              "pnl": -1885.1959999999965
+            },
+            {
+              "dt": "2024-02-07 09:30:00",
+              "direction": "BUY",
+              "price": 2.3423399999999996,
+              "quantity": 21100,
+              "amount": 49423.37399999999,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 09:33:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 21100,
+              "amount": 53961.984000000004,
+              "cost": 23.0,
+              "pnl": 4515.610000000011
+            },
+            {
+              "dt": "2024-02-08 09:37:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 18000,
+              "amount": 47207.159999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-23 09:32:00",
+              "direction": "SELL",
+              "price": 2.56743,
+              "quantity": 18000,
+              "amount": 46213.74,
+              "cost": 23.0,
+              "pnl": -1016.4200000000013
+            },
+            {
+              "dt": "2024-02-23 09:36:00",
+              "direction": "BUY",
+              "price": 2.56256,
+              "quantity": 17700,
+              "amount": 45357.312,
+              "cost": 23.0,
+              "pnl": 0.0
+            }
+          ]
+        }
+      },
+      "finished_at": "2026-03-19T00:15:29"
+    },
+    {
       "report_id": "1773849630693-47ae",
       "created_at": "2026-03-19T00:00:30",
       "stock_code": "002506.SZ",

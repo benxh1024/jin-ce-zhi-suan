@@ -843,6 +843,7 @@
         let klineModalOpened = false;
         let currentBacktestChartCtx = null;
         let klineLastProgressDate = null;
+        let klineHasRenderedData = false;
         let klineChart = null;
         let klineCandlesSeries = null;
         let klineVolumeSeries = null;
@@ -2687,6 +2688,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             if (!dates) return;
             currentBacktestChartCtx = { stock: code, start: dates.start, end: dates.end };
             klineLastProgressDate = null;
+            klineHasRenderedData = false;
             const klineBtn = document.getElementById('kline-open-btn');
             if (klineBtn) klineBtn.classList.remove('hidden');
             if (klineModalOpened) {
@@ -2829,6 +2831,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             }
             klineChart.timeScale().fitContent();
             renderKlineLegend(payload?.strategies || []);
+            klineHasRenderedData = true;
         }
 
         function refreshKlineModalImage(force = false, progressDate = null) {
@@ -2844,7 +2847,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 try {
                     const res = await fetch(`/api/backtest/kline_data?${q}`);
                     if (!res.ok) {
-                        if (res.status === 404) {
+                        if (res.status === 404 && !klineHasRenderedData) {
                             setKlineRenderMode('image');
                             const img = document.getElementById('kline-modal-image-fallback');
                             if (img) img.src = `/api/backtest/kline_chart?${q}`;
@@ -2853,16 +2856,20 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     }
                     const data = await res.json();
                     if (data.status !== 'success' || !Array.isArray(data.candles) || data.candles.length === 0) {
-                        setKlineRenderMode('image');
-                        const img = document.getElementById('kline-modal-image-fallback');
-                        if (img) img.src = `/api/backtest/kline_chart?${q}`;
+                        if (!klineHasRenderedData) {
+                            setKlineRenderMode('image');
+                            const img = document.getElementById('kline-modal-image-fallback');
+                            if (img) img.src = `/api/backtest/kline_chart?${q}`;
+                        }
                         return;
                     }
                     renderKlineChartData(data);
                 } catch (_) {
-                    setKlineRenderMode('image');
-                    const img = document.getElementById('kline-modal-image-fallback');
-                    if (img) img.src = `/api/backtest/kline_chart?${q}`;
+                    if (!klineHasRenderedData) {
+                        setKlineRenderMode('image');
+                        const img = document.getElementById('kline-modal-image-fallback');
+                        if (img) img.src = `/api/backtest/kline_chart?${q}`;
+                    }
                 }
             };
             if (force) return run();

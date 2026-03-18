@@ -657,7 +657,7 @@ async def api_report_strategy_kline_data(report_id: str, strategy_id: str):
                 "time": marker_ts,
                 "position": "belowBar" if is_buy else "aboveBar",
                 "shape": "arrowUp" if is_buy else "arrowDown",
-                "color": "#ef4444" if is_buy else "#22c55e",
+                "color": "#a855f7" if is_buy else "#06b6d4",
                 "text": f"{'买' if is_buy else '卖'} {price_val:.2f}"
             })
         return {
