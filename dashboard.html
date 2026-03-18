@@ -1809,6 +1809,15 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 ]
             },
             {
+                title: '刑部监察',
+                subtitle: '强平与回撤限制参数',
+                fields: [
+                    { path: 'risk_control.max_total_pos', label: '总仓位上限', type: 'number', unit: '%', min: 0.01, max: 1, step: 0.01, slider: true, scale: 100 },
+                    { path: 'risk_control.max_daily_loss_pct', label: '单日亏损熔断', type: 'number', unit: '%', min: 0.001, max: 0.2, step: 0.001, slider: true, scale: 100 },
+                    { path: 'risk_control.max_drawdown_pct', label: '回撤限制', type: 'number', unit: '%', min: 0.001, max: 0.5, step: 0.001, slider: true, scale: 100 }
+                ]
+            },
+            {
                 title: '户部成本',
                 subtitle: '手续费与税费模型',
                 fields: [
@@ -1922,6 +1931,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const boxPeriod = Number(getByPath(cfg, 'strategy_params.09.box_period', 0));
             const stopPct = Number(getByPath(cfg, 'risk_control.max_stop_loss_pct', 0));
             const dayLossPct = Number(getByPath(cfg, 'risk_control.max_daily_loss_pct', 0));
+            const drawdownPct = Number(getByPath(cfg, 'risk_control.max_drawdown_pct', dayLossPct));
             const slippage = Number(getByPath(cfg, 'execution.slippage', 0));
             const capital = Number(getByPath(cfg, 'system.initial_capital', 0));
             const commissionRate = Number(getByPath(cfg, 'trading_cost.commission_rate', 0));
@@ -1940,7 +1950,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             setMetricText('cfg-xing-totalpos', fmtPct(totalPos), totalPos * 100);
             setText('cfg-gong-source', `${getByPath(cfg, 'data_provider.source', '--')}`);
             setText('cfg-gong-fallback', getByPath(cfg, 'data_provider.enable_fallback', false) ? 'ON' : 'OFF');
-            setMetricText('justice-dd-limit', fmtPct(dayLossPct), dayLossPct * 100);
+            setMetricText('justice-dd-limit', fmtPct(drawdownPct), drawdownPct * 100);
         }
 
         async function syncBoardConfig() {
@@ -3205,12 +3215,50 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const el = document.createElement('div');
             el.className = 'flex gap-2 animate-pulse';
             const moduleText = String(module || '') === 'SYSTEM' ? '系统' : module;
+            const moduleColorMap = {
+                '中书省': 'text-trading-blue',
+                '门下省': 'text-trading-yellow',
+                '尚书省': 'text-trading-red',
+                '吏部': 'text-purple-400',
+                '户部': 'text-trading-yellow',
+                '礼部': 'text-blue-400',
+                '兵部': 'text-red-500',
+                '刑部': 'text-orange-500',
+                '工部': 'text-cyan-400',
+                '太子院': 'text-indigo-400',
+                '系统': 'text-trading-blue'
+            };
+            const aliasColorMap = {
+                '策略中心': 'text-trading-blue',
+                '策略研究中心': 'text-trading-blue',
+                '风控中心': 'text-trading-yellow',
+                '风控审核中心': 'text-trading-yellow',
+                '执行中心': 'text-trading-red',
+                '指令执行中心': 'text-trading-red',
+                '资金中心': 'text-purple-400',
+                '数据中心': 'text-cyan-400',
+                '合规中心': 'text-blue-400'
+            };
+            const resolveModuleColor = (name) => {
+                if (moduleColorMap[name]) return moduleColorMap[name];
+                if (aliasColorMap[name]) return aliasColorMap[name];
+                const n = String(name || '');
+                if (n.includes('策略')) return 'text-trading-blue';
+                if (n.includes('风控')) return 'text-trading-yellow';
+                if (n.includes('执行')) return 'text-trading-red';
+                if (n.includes('合规')) return 'text-blue-400';
+                if (n.includes('数据')) return 'text-cyan-400';
+                if (n.includes('资金')) return 'text-purple-400';
+                return '';
+            };
             
-            let color = 'text-slate-300';
-            if (type === 'success') color = 'text-trading-green';
-            if (type === 'warning') color = 'text-trading-yellow';
-            if (type === 'danger') color = 'text-trading-red';
-            if (type === 'system') color = 'text-trading-blue';
+            let color = resolveModuleColor(moduleText) || 'text-slate-300';
+            if (!resolveModuleColor(moduleText)) {
+                if (type === 'success') color = 'text-trading-green';
+                if (type === 'warning') color = 'text-trading-yellow';
+                if (type === 'danger') color = 'text-trading-red';
+                if (type === 'system') color = 'text-trading-blue';
+            }
 
             el.innerHTML = `
                 <span class="text-slate-500">[${getTime()}]</span>
