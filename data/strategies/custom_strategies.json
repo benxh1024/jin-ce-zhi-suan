@@ -1,16 +1,6 @@
 {
   "strategies": [
     {
-      "id": "U100",
-      "name": "双板回马枪/N字突破策略",
-      "class_name": "GeneratedStrategyU100",
-      "code": "from src.strategies.implemented_strategies import BaseImplementedStrategy\nimport pandas as pd\nfrom src.utils.indicators import Indicators\n\nclass GeneratedStrategyU100(BaseImplementedStrategy):\n    def __init__(self):\n        super().__init__(\"U100\", \"双板回马枪/N字突破策略\", trigger_timeframe=\"1min\")\n        self.history = {}\n\n    def on_bar(self, kline):\n        code = kline['code']\n        if code not in self.history:\n            self.history[code] = pd.DataFrame()\n        self.history[code] = pd.concat([self.history[code], pd.DataFrame([kline])], ignore_index=True).tail(2000)\n        df = self.history[code]\n        if len(df) < 80:\n            return None\n        close = df['close']\n        ma_fast = Indicators.MA(close, 12)\n        ma_slow = Indicators.MA(close, 36)\n        if len(ma_fast) < 2 or len(ma_slow) < 2:\n            return None\n        qty = int(self.positions.get(code, 0))\n        c = float(kline['close'])\n        stop_loss_pct = float(self._cfg(\"stop_loss_pct\", 0.03))\n        if qty <= 0 and float(ma_fast.iloc[-2]) <= float(ma_slow.iloc[-2]) and float(ma_fast.iloc[-1]) > float(ma_slow.iloc[-1]):\n            buy_qty = int(self._qty())\n            if buy_qty <= 0:\n                return None\n            return {\n                'strategy_id': self.id,\n                'code': code,\n                'dt': kline['dt'],\n                'direction': 'BUY',\n                'price': c,\n                'qty': buy_qty,\n                'stop_loss': c * (1 - stop_loss_pct),\n                'take_profit': None\n            }\n        if qty > 0 and float(ma_fast.iloc[-2]) >= float(ma_slow.iloc[-2]) and float(ma_fast.iloc[-1]) < float(ma_slow.iloc[-1]):\n            return self.create_exit_signal(kline, qty, \"MA Cross Exit\")\n        return None",
-      "template_text": "2. 入场信号（突破确认）\n\n• 放量阳线突破二板高点，当日量>5日均量1.5倍\n\n• 收盘价站稳前高，MACD金叉/均量线拐头\n\n• 入场：突破当日尾盘/次日回踩前高时买入\n\n3. 风控与止盈\n\n• 止损：跌破前高/5日均线，或回调低点下方3%\n\n• 止盈：目标15%–25%，或分批止盈（突破后每涨10%减仓）\n\n• 时间：突破后1–3周未达目标则离场",
-      "analysis_text": "大模型分析调用失败，已回退默认策略代码。",
-      "created_at": "2026-03-18T14:15:45",
-      "updated_at": "2026-03-18T14:15:45"
-    },
-    {
       "id": "10",
       "name": "N字突破策略",
       "class_name": "GeneratedStrategyTemplate",

@@ -6,6 +6,7 @@
     <title>回测报告中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         @keyframes fadeSlideIn {
             from { opacity: 0; transform: translateY(8px); }
@@ -92,10 +93,25 @@
             </div>
         </div>
     </div>
+    <div id="report-kline-modal" class="fixed inset-0 bg-black/70 hidden z-50 items-center justify-center p-4">
+        <div class="w-full max-w-6xl h-[86vh] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700">
+                <div class="text-white font-semibold text-base" id="report-kline-title">单策略K线</div>
+                <button id="report-kline-close-btn" class="text-slate-400 hover:text-white text-lg leading-none">×</button>
+            </div>
+            <div id="report-kline-subtitle" class="px-4 py-2 text-xs text-slate-400 border-b border-slate-700">--</div>
+            <div class="flex-1 bg-slate-950 overflow-hidden">
+                <div id="report-kline-chart" class="w-full h-full"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
         let currentReportId = null;
         const strategyReportMap = {};
+        let reportKlineChart = null;
+        let reportKlineCandleSeries = null;
+        let reportKlineVolumeSeries = null;
         let strategyMetaLoaded = false;
         const STRATEGY_NAME_MAP = {
             "00": "长期持有一次买入",
@@ -319,7 +335,10 @@
                 card.className = 'bg-slate-800/50 border border-slate-700 rounded-lg p-4 text-sm enter-anim transition-all duration-200 hover:border-slate-500 hover:-translate-y-0.5';
                 card.innerHTML = `
                     <div class="font-bold text-white mb-2">策略 ${sid} · ${sname}</div>
-                    <div class="mb-2"><button onclick="openTradeDetails('${sid}')" class="text-xs bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded border border-blue-600">交易明细</button></div>
+                    <div class="mb-2 flex items-center gap-2">
+                        <button onclick="openTradeDetails('${sid}')" class="text-xs bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded border border-blue-600">交易明细</button>
+                        <button onclick="openStrategyKline('${sid}')" class="text-xs bg-indigo-700 hover:bg-indigo-600 text-white px-2 py-1 rounded border border-indigo-600">K线显示</button>
+                    </div>
                     <div class="text-slate-300">使用周期：${STRATEGY_PERIOD_MAP[sid] || '--'}</div>
                     <div class="text-slate-300">回测周期：${r.start_date} ~ ${r.end_date}</div>
                     <div class="text-slate-300">初始资金：${Number(r.init_capital || 0).toFixed(2)} 元</div>
@@ -335,6 +354,95 @@
                 `;
                 wrap.appendChild(card);
             });
+        }
+
+        function ensureReportKlineChart() {
+            if (reportKlineChart && reportKlineCandleSeries && reportKlineVolumeSeries) return true;
+            const container = document.getElementById('report-kline-chart');
+            if (!container || !window.LightweightCharts) return false;
+            reportKlineChart = LightweightCharts.createChart(container, {
+                layout: { background: { color: '#020617' }, textColor: '#cbd5e1' },
+                grid: { vertLines: { color: 'rgba(148,163,184,0.1)' }, horzLines: { color: 'rgba(148,163,184,0.1)' } },
+                rightPriceScale: { borderColor: '#334155' },
+                timeScale: { borderColor: '#334155', timeVisible: true, secondsVisible: false }
+            });
+            const candleOpt = {
+                upColor: '#ef4444',
+                downColor: '#22c55e',
+                borderVisible: false,
+                wickUpColor: '#ef4444',
+                wickDownColor: '#22c55e'
+            };
+            const volumeOpt = {
+                priceFormat: { type: 'volume' },
+                priceScaleId: 'volume',
+                lastValueVisible: false,
+                priceLineVisible: false
+            };
+            if (typeof reportKlineChart.addCandlestickSeries === 'function') {
+                reportKlineCandleSeries = reportKlineChart.addCandlestickSeries(candleOpt);
+                reportKlineVolumeSeries = reportKlineChart.addHistogramSeries(volumeOpt);
+            } else if (typeof reportKlineChart.addSeries === 'function' && window.LightweightCharts?.CandlestickSeries && window.LightweightCharts?.HistogramSeries) {
+                reportKlineCandleSeries = reportKlineChart.addSeries(LightweightCharts.CandlestickSeries, candleOpt);
+                reportKlineVolumeSeries = reportKlineChart.addSeries(LightweightCharts.HistogramSeries, volumeOpt);
+            } else {
+                return false;
+            }
+            reportKlineChart.priceScale('right').applyOptions({ scaleMargins: { top: 0.08, bottom: 0.32 } });
+            reportKlineChart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+            return true;
+        }
+
+        async function openStrategyKline(strategyId) {
+            const sid = String(strategyId || '');
+            if (!sid || !currentReportId) return;
+            const report = strategyReportMap[sid] || {};
+            const periodLabel = STRATEGY_PERIOD_MAP[sid] || '--';
+            const modal = document.getElementById('report-kline-modal');
+            const title = document.getElementById('report-kline-title');
+            const subtitle = document.getElementById('report-kline-subtitle');
+            if (title) title.innerText = `策略 ${sid} K线与成交量`;
+            if (subtitle) subtitle.innerText = `周期 ${periodLabel} · 区间 ${report.start_date || '--'} ~ ${report.end_date || '--'}`;
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            if (!ensureReportKlineChart()) return;
+            const container = document.getElementById('report-kline-chart');
+            if (container && reportKlineChart) {
+                reportKlineChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+            }
+            try {
+                const q = `report_id=${encodeURIComponent(currentReportId)}&strategy_id=${encodeURIComponent(sid)}`;
+                const res = await fetch(`/api/report/strategy/kline_data?${q}`);
+                const data = await res.json();
+                if (data.status !== 'success') return;
+                const stockCode = data.stock || '--';
+                const periodText = data.period_label || periodLabel || '--';
+                const startText = report.start_date || '--';
+                const endText = report.end_date || '--';
+                if (title) title.innerText = `${stockCode} · ${periodText} · ${startText} ~ ${endText}`;
+                if (subtitle) subtitle.innerText = `策略 ${sid} · K线与成交量`;
+                const candles = Array.isArray(data.candles) ? data.candles : [];
+                const volumes = Array.isArray(data.volumes) ? data.volumes : [];
+                const markers = Array.isArray(data.markers) ? data.markers : [];
+                reportKlineCandleSeries.setData(candles);
+                reportKlineVolumeSeries.setData(volumes);
+                if (typeof reportKlineCandleSeries.setMarkers === 'function') {
+                    reportKlineCandleSeries.setMarkers(markers);
+                } else if (typeof LightweightCharts?.createSeriesMarkers === 'function') {
+                    LightweightCharts.createSeriesMarkers(reportKlineCandleSeries, markers);
+                }
+                reportKlineChart.timeScale().fitContent();
+            } catch (_) {}
+        }
+
+        function closeReportKline() {
+            const modal = document.getElementById('report-kline-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
         }
 
         function openTradeDetails(strategyId) {
@@ -409,6 +517,16 @@
         document.getElementById('trade-detail-close-btn').addEventListener('click', closeTradeDetails);
         document.getElementById('trade-detail-modal').addEventListener('click', (e) => {
             if (e.target && e.target.id === 'trade-detail-modal') closeTradeDetails();
+        });
+        document.getElementById('report-kline-close-btn').addEventListener('click', closeReportKline);
+        document.getElementById('report-kline-modal').addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'report-kline-modal') closeReportKline();
+        });
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('report-kline-chart');
+            if (reportKlineChart && container) {
+                reportKlineChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+            }
         });
         setInterval(refreshAll, 15000);
         refreshAll();

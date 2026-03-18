@@ -1,6 +1,1283 @@
 {
   "reports": [
     {
+      "report_id": "1773849630693-47ae",
+      "created_at": "2026-03-19T00:00:30",
+      "stock_code": "002506.SZ",
+      "strategy_id": "05",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "05",
+        "strategy_ids": [
+          "05"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-03-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-03-01",
+        "ranking": [
+          {
+            "strategy_id": "05",
+            "total_pnl": -153.33899999994833,
+            "roi": -0.00015333899999994834,
+            "annualized_roi": -0.0006438658114217288,
+            "max_dd": 0.007197718999999966,
+            "win_rate": 0.25,
+            "profit_factor": 2.950039201486535,
+            "total_trades": 4,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 2,
+            "calmar": -0.08945414671255322,
+            "sharpe": 0.0,
+            "rank": 1,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 4
+      },
+      "ranking": [
+        {
+          "strategy_id": "05",
+          "total_pnl": -153.33899999994833,
+          "roi": -0.00015333899999994834,
+          "annualized_roi": -0.0006438658114217288,
+          "max_dd": 0.007197718999999966,
+          "win_rate": 0.25,
+          "profit_factor": 2.950039201486535,
+          "total_trades": 4,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 2,
+          "calmar": -0.08945414671255322,
+          "sharpe": 0.0,
+          "rank": 1,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "05": {
+          "strategy_id": "05",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 1000000.0,
+          "end_capital": 999846.6610000001,
+          "total_return": -0.00015333899999991907,
+          "annual_return": -0.0006438658114217288,
+          "max_drawdown": -0.007197719000000041,
+          "trade_count": 4,
+          "win_num": 1,
+          "loss_num": 3,
+          "win_rate": 0.25,
+          "avg_win": 9054.220000000021,
+          "avg_loss": 3069.1863333333226,
+          "profit_ratio": 2.950039201486535,
+          "trade_details": [
+            {
+              "dt": "2024-01-08 14:32:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 35800,
+              "amount": 99623.52399999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-15 14:27:00",
+              "direction": "SELL",
+              "price": 2.68731,
+              "quantity": 35800,
+              "amount": 96205.698,
+              "cost": 23.0,
+              "pnl": -3440.825999999974
+            },
+            {
+              "dt": "2024-01-26 09:37:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 39300,
+              "amount": 100315.21499999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 09:30:00",
+              "direction": "SELL",
+              "price": 2.45754,
+              "quantity": 39300,
+              "amount": 96581.322,
+              "cost": 23.0,
+              "pnl": -3756.8929999999928
+            },
+            {
+              "dt": "2024-02-07 09:30:00",
+              "direction": "BUY",
+              "price": 2.3423399999999996,
+              "quantity": 42200,
+              "amount": 98846.74799999998,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 09:33:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 42200,
+              "amount": 107923.96800000001,
+              "cost": 23.0,
+              "pnl": 9054.220000000021
+            },
+            {
+              "dt": "2024-02-08 09:37:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 36000,
+              "amount": 94414.31999999999,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-23 09:32:00",
+              "direction": "SELL",
+              "price": 2.56743,
+              "quantity": 36000,
+              "amount": 92427.48,
+              "cost": 23.0,
+              "pnl": -2009.8400000000026
+            },
+            {
+              "dt": "2024-02-23 09:36:00",
+              "direction": "BUY",
+              "price": 2.56256,
+              "quantity": 35400,
+              "amount": 90714.624,
+              "cost": 23.0,
+              "pnl": 0.0
+            }
+          ]
+        }
+      },
+      "finished_at": "2026-03-19T00:02:32"
+    },
+    {
+      "report_id": "1773848758380-f938",
+      "created_at": "2026-03-18T23:45:58",
+      "stock_code": "002506.SZ",
+      "strategy_id": "00",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "00",
+        "strategy_ids": [
+          "00",
+          "01",
+          "05"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-04-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-04-01",
+        "ranking": [
+          {
+            "strategy_id": "01",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 1,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "05",
+            "total_pnl": -687.3809999999796,
+            "roi": -0.002062142999999939,
+            "annualized_roi": -0.0057001381503773985,
+            "max_dd": 0.007280171999999985,
+            "win_rate": 0.375,
+            "profit_factor": 1.4498989387926824,
+            "total_trades": 8,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 2,
+            "calmar": -0.7829675109842749,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "00",
+            "total_pnl": -25183.415397391986,
+            "roi": -0.07555024619217596,
+            "annualized_roi": -0.19550561840397318,
+            "max_dd": 0.07555024619217596,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "total_trades": 1,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": -2.5877562054088963,
+            "sharpe": 0.0,
+            "rank": 3,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 9
+      },
+      "ranking": [
+        {
+          "strategy_id": "01",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 1,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "05",
+          "total_pnl": -687.3809999999796,
+          "roi": -0.002062142999999939,
+          "annualized_roi": -0.0057001381503773985,
+          "max_dd": 0.007280171999999985,
+          "win_rate": 0.375,
+          "profit_factor": 1.4498989387926824,
+          "total_trades": 8,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 2,
+          "calmar": -0.7829675109842749,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "00",
+          "total_pnl": -25183.415397391986,
+          "roi": -0.07555024619217596,
+          "annualized_roi": -0.19550561840397318,
+          "max_dd": 0.07555024619217596,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "total_trades": 1,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": -2.5877562054088963,
+          "sharpe": 0.0,
+          "rank": 3,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "00": {
+          "strategy_id": "00",
+          "start_date": "2024-01-01",
+          "end_date": "2024-04-01",
+          "init_capital": 333333.3333333333,
+          "end_capital": 308149.9179359413,
+          "total_return": -0.07555024619217598,
+          "annual_return": -0.19550561840397318,
+          "max_drawdown": -0.07555024619217601,
+          "trade_count": 1,
+          "win_num": 0,
+          "loss_num": 1,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 25183.415397391986,
+          "profit_ratio": 0.0,
+          "trade_details": [
+            {
+              "dt": "2024-01-02 15:00:00",
+              "direction": "BUY",
+              "price": 2.72272,
+              "quantity": 122402,
+              "amount": 333266.37344,
+              "cost": 66.653274688,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-03-29 15:00:00",
+              "direction": "SELL",
+              "price": 2.51748,
+              "quantity": 122402,
+              "amount": 308144.58696,
+              "cost": 61.628917392,
+              "pnl": -25183.415397391986
+            }
+          ]
+        },
+        "01": {
+          "strategy_id": "01",
+          "start_date": "2024-01-01",
+          "end_date": "2024-04-01",
+          "init_capital": 333333.3333333333,
+          "end_capital": 333333.3333333333,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        },
+        "05": {
+          "strategy_id": "05",
+          "start_date": "2024-01-01",
+          "end_date": "2024-04-01",
+          "init_capital": 333333.3333333333,
+          "end_capital": 332645.9523333333,
+          "total_return": -0.0020621429999999608,
+          "annual_return": -0.0057001381503773985,
+          "max_drawdown": -0.007280171999999962,
+          "trade_count": 8,
+          "win_num": 3,
+          "loss_num": 5,
+          "win_rate": 0.375,
+          "avg_win": 1532.566666666672,
+          "avg_loss": 1057.016199999999,
+          "profit_ratio": 1.4498989387926824,
+          "trade_details": [
+            {
+              "dt": "2024-01-08 14:32:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 11900,
+              "amount": 33115.081999999995,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-15 14:27:00",
+              "direction": "SELL",
+              "price": 2.68731,
+              "quantity": 11900,
+              "amount": 31978.989,
+              "cost": 23.0,
+              "pnl": -1159.0929999999914
+            },
+            {
+              "dt": "2024-01-26 09:37:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 13100,
+              "amount": 33438.405,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 09:30:00",
+              "direction": "SELL",
+              "price": 2.45754,
+              "quantity": 13100,
+              "amount": 32193.773999999998,
+              "cost": 23.0,
+              "pnl": -1267.6310000000035
+            },
+            {
+              "dt": "2024-02-07 09:30:00",
+              "direction": "BUY",
+              "price": 2.3423399999999996,
+              "quantity": 14000,
+              "amount": 32792.759999999995,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 09:33:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 14000,
+              "amount": 35804.16,
+              "cost": 23.0,
+              "pnl": 2988.4000000000074
+            },
+            {
+              "dt": "2024-02-08 09:37:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 12000,
+              "amount": 31471.44,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-23 09:32:00",
+              "direction": "SELL",
+              "price": 2.56743,
+              "quantity": 12000,
+              "amount": 30809.16,
+              "cost": 23.0,
+              "pnl": -685.2800000000009
+            },
+            {
+              "dt": "2024-02-23 09:36:00",
+              "direction": "BUY",
+              "price": 2.56256,
+              "quantity": 11800,
+              "amount": 30238.208,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-03-01 09:31:00",
+              "direction": "SELL",
+              "price": 2.68731,
+              "quantity": 11800,
+              "amount": 31710.258,
+              "cost": 23.0,
+              "pnl": 1449.0500000000015
+            },
+            {
+              "dt": "2024-03-01 09:34:00",
+              "direction": "BUY",
+              "price": 2.69269,
+              "quantity": 11200,
+              "amount": 30158.127999999997,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-03-07 15:00:00",
+              "direction": "SELL",
+              "price": 2.62737,
+              "quantity": 11200,
+              "amount": 29426.543999999998,
+              "cost": 23.0,
+              "pnl": -754.583999999998
+            },
+            {
+              "dt": "2024-03-08 13:41:00",
+              "direction": "BUY",
+              "price": 2.66266,
+              "quantity": 12500,
+              "amount": 33283.25,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-03-15 13:36:00",
+              "direction": "SELL",
+              "price": 2.6773200000000004,
+              "quantity": 12500,
+              "amount": 33466.50000000001,
+              "cost": 23.0,
+              "pnl": 160.25000000000702
+            },
+            {
+              "dt": "2024-03-18 09:57:00",
+              "direction": "BUY",
+              "price": 2.72272,
+              "quantity": 12100,
+              "amount": 32944.912,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-03-25 09:52:00",
+              "direction": "SELL",
+              "price": 2.6073899999999997,
+              "quantity": 12100,
+              "amount": 31549.418999999994,
+              "cost": 23.0,
+              "pnl": -1418.4930000000018
+            }
+          ]
+        }
+      },
+      "finished_at": "2026-03-18T23:51:51"
+    },
+    {
+      "report_id": "1773848619361-057a",
+      "created_at": "2026-03-18T23:43:39",
+      "stock_code": "002506.SZ",
+      "strategy_id": "all",
+      "status": "cancelled",
+      "error_msg": "backtest task cancelled by user",
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "all",
+        "strategy_ids": null,
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-04-01",
+        "capital": 1000000
+      },
+      "summary": null,
+      "ranking": [],
+      "strategy_reports": {},
+      "finished_at": "2026-03-18T23:44:55"
+    },
+    {
+      "report_id": "1773848268410-c81a",
+      "created_at": "2026-03-18T23:37:48",
+      "stock_code": "002506.SZ",
+      "strategy_id": "00",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "00",
+        "strategy_ids": [
+          "00",
+          "05"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-03-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-03-01",
+        "ranking": [
+          {
+            "strategy_id": "05",
+            "total_pnl": -117.91899999997429,
+            "roi": -0.00023583799999994857,
+            "annualized_roi": -0.0009901459011784075,
+            "max_dd": 0.007234217999999967,
+            "win_rate": 0.25,
+            "profit_factor": 2.9236527925043907,
+            "total_trades": 4,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 2,
+            "calmar": -0.13686979037380573,
+            "sharpe": 0.0,
+            "rank": 1,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "00",
+            "total_pnl": -15769.197521615937,
+            "roi": -0.03153839504323187,
+            "annualized_roi": -0.12593020639128327,
+            "max_dd": 0.03153839504323187,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "total_trades": 1,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": -3.9929174017467273,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 5
+      },
+      "ranking": [
+        {
+          "strategy_id": "05",
+          "total_pnl": -117.91899999997429,
+          "roi": -0.00023583799999994857,
+          "annualized_roi": -0.0009901459011784075,
+          "max_dd": 0.007234217999999967,
+          "win_rate": 0.25,
+          "profit_factor": 2.9236527925043907,
+          "total_trades": 4,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 2,
+          "calmar": -0.13686979037380573,
+          "sharpe": 0.0,
+          "rank": 1,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "00",
+          "total_pnl": -15769.197521615937,
+          "roi": -0.03153839504323187,
+          "annualized_roi": -0.12593020639128327,
+          "max_dd": 0.03153839504323187,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "total_trades": 1,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": -3.9929174017467273,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "00": {
+          "strategy_id": "00",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 500000.0,
+          "end_capital": 484230.80247838405,
+          "total_return": -0.03153839504323186,
+          "annual_return": -0.12593020639128327,
+          "max_drawdown": -0.031538395043231894,
+          "trade_count": 1,
+          "win_num": 0,
+          "loss_num": 1,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 15769.197521615937,
+          "profit_ratio": 0.0,
+          "trade_details": [
+            {
+              "dt": "2024-01-02 15:00:00",
+              "direction": "BUY",
+              "price": 2.72272,
+              "quantity": 183603,
+              "amount": 499899.56016,
+              "cost": 99.979912032,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-29 15:00:00",
+              "direction": "SELL",
+              "price": 2.63736,
+              "quantity": 183603,
+              "amount": 484227.20808,
+              "cost": 96.845441616,
+              "pnl": -15769.197521615937
+            }
+          ]
+        },
+        "05": {
+          "strategy_id": "05",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 500000.0,
+          "end_capital": 499882.081,
+          "total_return": -0.00023583800000004373,
+          "annual_return": -0.0009901459011789626,
+          "max_drawdown": -0.007234217999999994,
+          "trade_count": 4,
+          "win_num": 1,
+          "loss_num": 3,
+          "win_rate": 0.25,
+          "avg_win": 4515.610000000011,
+          "avg_loss": 1544.5096666666616,
+          "profit_ratio": 2.9236527925043907,
+          "trade_details": [
+            {
+              "dt": "2024-01-08 14:32:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 17900,
+              "amount": 49811.76199999999,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-15 14:27:00",
+              "direction": "SELL",
+              "price": 2.68731,
+              "quantity": 17900,
+              "amount": 48102.849,
+              "cost": 23.0,
+              "pnl": -1731.912999999987
+            },
+            {
+              "dt": "2024-01-26 09:37:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 19600,
+              "amount": 50029.979999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 09:30:00",
+              "direction": "SELL",
+              "price": 2.45754,
+              "quantity": 19600,
+              "amount": 48167.784,
+              "cost": 23.0,
+              "pnl": -1885.1959999999965
+            },
+            {
+              "dt": "2024-02-07 09:30:00",
+              "direction": "BUY",
+              "price": 2.3423399999999996,
+              "quantity": 21100,
+              "amount": 49423.37399999999,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-08 09:33:00",
+              "direction": "SELL",
+              "price": 2.55744,
+              "quantity": 21100,
+              "amount": 53961.984000000004,
+              "cost": 23.0,
+              "pnl": 4515.610000000011
+            },
+            {
+              "dt": "2024-02-08 09:37:00",
+              "direction": "BUY",
+              "price": 2.62262,
+              "quantity": 18000,
+              "amount": 47207.159999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-23 09:32:00",
+              "direction": "SELL",
+              "price": 2.56743,
+              "quantity": 18000,
+              "amount": 46213.74,
+              "cost": 23.0,
+              "pnl": -1016.4200000000013
+            },
+            {
+              "dt": "2024-02-23 09:36:00",
+              "direction": "BUY",
+              "price": 2.56256,
+              "quantity": 17700,
+              "amount": 45357.312,
+              "cost": 23.0,
+              "pnl": 0.0
+            }
+          ]
+        }
+      },
+      "finished_at": "2026-03-18T23:39:42"
+    },
+    {
+      "report_id": "1773847819854-eafb",
+      "created_at": "2026-03-18T23:30:19",
+      "stock_code": "002506.SZ",
+      "strategy_id": "00",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "00",
+        "strategy_ids": [
+          "00",
+          "10"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-03-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-03-01",
+        "ranking": [
+          {
+            "strategy_id": "10",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 1,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "00",
+            "total_pnl": -15769.197521615937,
+            "roi": -0.03153839504323187,
+            "annualized_roi": -0.12593020639128327,
+            "max_dd": 0.03153839504323187,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "total_trades": 1,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": -3.9929174017467273,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 1
+      },
+      "ranking": [
+        {
+          "strategy_id": "10",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 1,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "00",
+          "total_pnl": -15769.197521615937,
+          "roi": -0.03153839504323187,
+          "annualized_roi": -0.12593020639128327,
+          "max_dd": 0.03153839504323187,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "total_trades": 1,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": -3.9929174017467273,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "00": {
+          "strategy_id": "00",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 500000.0,
+          "end_capital": 484230.80247838405,
+          "total_return": -0.03153839504323186,
+          "annual_return": -0.12593020639128327,
+          "max_drawdown": -0.031538395043231894,
+          "trade_count": 1,
+          "win_num": 0,
+          "loss_num": 1,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 15769.197521615937,
+          "profit_ratio": 0.0,
+          "trade_details": [
+            {
+              "dt": "2024-01-02 15:00:00",
+              "direction": "BUY",
+              "price": 2.72272,
+              "quantity": 183603,
+              "amount": 499899.56016,
+              "cost": 99.979912032,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-02-29 15:00:00",
+              "direction": "SELL",
+              "price": 2.63736,
+              "quantity": 183603,
+              "amount": 484227.20808,
+              "cost": 96.845441616,
+              "pnl": -15769.197521615937
+            }
+          ]
+        },
+        "10": {
+          "strategy_id": "10",
+          "start_date": "2024-01-01",
+          "end_date": "2024-03-01",
+          "init_capital": 500000.0,
+          "end_capital": 500000.0,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        }
+      },
+      "finished_at": "2026-03-18T23:31:41"
+    },
+    {
+      "report_id": "1773847460887-f1b1",
+      "created_at": "2026-03-18T23:24:20",
+      "stock_code": "002506.SZ",
+      "strategy_id": "01",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "01",
+        "strategy_ids": [
+          "01",
+          "05"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-02-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-02-01",
+        "ranking": [
+          {
+            "strategy_id": "01",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 1,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "05",
+            "total_pnl": -3617.1089999999836,
+            "roi": -0.007234217999999967,
+            "annualized_roi": -0.05731296617799975,
+            "max_dd": 0.007234217999999967,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "total_trades": 2,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 1,
+            "calmar": -7.922482592866293,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 2
+      },
+      "ranking": [
+        {
+          "strategy_id": "01",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 1,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "05",
+          "total_pnl": -3617.1089999999836,
+          "roi": -0.007234217999999967,
+          "annualized_roi": -0.05731296617799975,
+          "max_dd": 0.007234217999999967,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "total_trades": 2,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 1,
+          "calmar": -7.922482592866293,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "01": {
+          "strategy_id": "01",
+          "start_date": "2024-01-01",
+          "end_date": "2024-02-01",
+          "init_capital": 500000.0,
+          "end_capital": 500000.0,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        },
+        "05": {
+          "strategy_id": "05",
+          "start_date": "2024-01-01",
+          "end_date": "2024-02-01",
+          "init_capital": 500000.0,
+          "end_capital": 496382.891,
+          "total_return": -0.0072342180000000145,
+          "annual_return": -0.05731296617799975,
+          "max_drawdown": -0.007234217999999994,
+          "trade_count": 2,
+          "win_num": 0,
+          "loss_num": 2,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 1808.5544999999918,
+          "profit_ratio": 0.0,
+          "trade_details": [
+            {
+              "dt": "2024-01-08 14:32:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 17900,
+              "amount": 49811.76199999999,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-15 14:27:00",
+              "direction": "SELL",
+              "price": 2.68731,
+              "quantity": 17900,
+              "amount": 48102.849,
+              "cost": 23.0,
+              "pnl": -1731.912999999987
+            },
+            {
+              "dt": "2024-01-26 09:37:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 19600,
+              "amount": 50029.979999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 09:30:00",
+              "direction": "SELL",
+              "price": 2.45754,
+              "quantity": 19600,
+              "amount": 48167.784,
+              "cost": 23.0,
+              "pnl": -1885.1959999999965
+            }
+          ]
+        }
+      },
+      "finished_at": "2026-03-18T23:25:36"
+    },
+    {
+      "report_id": "1773846466966-e351",
+      "created_at": "2026-03-18T23:07:46",
+      "stock_code": "002506.SZ",
+      "strategy_id": "01",
+      "status": "success",
+      "error_msg": null,
+      "request": {
+        "stock_code": "002506.SZ",
+        "strategy_id": "01",
+        "strategy_ids": [
+          "01",
+          "05"
+        ],
+        "strategy_mode": null,
+        "start": "2024-01-01",
+        "end": "2024-02-01",
+        "capital": 1000000
+      },
+      "summary": {
+        "stock": "002506.SZ",
+        "period": "2024-01-01 - 2024-02-01",
+        "ranking": [
+          {
+            "strategy_id": "01",
+            "total_pnl": 0.0,
+            "roi": 0.0,
+            "annualized_roi": 0.0,
+            "max_dd": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": Infinity,
+            "total_trades": 0,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 0,
+            "calmar": 0.0,
+            "sharpe": 0.0,
+            "rank": 1,
+            "rating": "C"
+          },
+          {
+            "strategy_id": "05",
+            "total_pnl": -3617.1089999999836,
+            "roi": -0.007234217999999967,
+            "annualized_roi": -0.05731296617799975,
+            "max_dd": 0.007234217999999967,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "total_trades": 2,
+            "rejections": 0,
+            "violations": 0,
+            "circuit_breaks": 1,
+            "calmar": -7.922482592866293,
+            "sharpe": 0.0,
+            "rank": 2,
+            "rating": "C"
+          }
+        ],
+        "total_trades": 2
+      },
+      "ranking": [
+        {
+          "strategy_id": "01",
+          "total_pnl": 0.0,
+          "roi": 0.0,
+          "annualized_roi": 0.0,
+          "max_dd": 0.0,
+          "win_rate": 0.0,
+          "profit_factor": Infinity,
+          "total_trades": 0,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 0,
+          "calmar": 0.0,
+          "sharpe": 0.0,
+          "rank": 1,
+          "rating": "C"
+        },
+        {
+          "strategy_id": "05",
+          "total_pnl": -3617.1089999999836,
+          "roi": -0.007234217999999967,
+          "annualized_roi": -0.05731296617799975,
+          "max_dd": 0.007234217999999967,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "total_trades": 2,
+          "rejections": 0,
+          "violations": 0,
+          "circuit_breaks": 1,
+          "calmar": -7.922482592866293,
+          "sharpe": 0.0,
+          "rank": 2,
+          "rating": "C"
+        }
+      ],
+      "strategy_reports": {
+        "01": {
+          "strategy_id": "01",
+          "start_date": "2024-01-01",
+          "end_date": "2024-02-01",
+          "init_capital": 500000.0,
+          "end_capital": 500000.0,
+          "total_return": 0.0,
+          "annual_return": 0.0,
+          "max_drawdown": 0.0,
+          "trade_count": 0,
+          "win_num": 0,
+          "loss_num": 0,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 0.0,
+          "profit_ratio": 0.0,
+          "trade_details": []
+        },
+        "05": {
+          "strategy_id": "05",
+          "start_date": "2024-01-01",
+          "end_date": "2024-02-01",
+          "init_capital": 500000.0,
+          "end_capital": 496382.891,
+          "total_return": -0.0072342180000000145,
+          "annual_return": -0.05731296617799975,
+          "max_drawdown": -0.007234217999999994,
+          "trade_count": 2,
+          "win_num": 0,
+          "loss_num": 2,
+          "win_rate": 0.0,
+          "avg_win": 0.0,
+          "avg_loss": 1808.5544999999918,
+          "profit_ratio": 0.0,
+          "trade_details": [
+            {
+              "dt": "2024-01-08 14:32:00",
+              "direction": "BUY",
+              "price": 2.7827799999999994,
+              "quantity": 17900,
+              "amount": 49811.76199999999,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-15 14:27:00",
+              "direction": "SELL",
+              "price": 2.68731,
+              "quantity": 17900,
+              "amount": 48102.849,
+              "cost": 23.0,
+              "pnl": -1731.912999999987
+            },
+            {
+              "dt": "2024-01-26 09:37:00",
+              "direction": "BUY",
+              "price": 2.5525499999999997,
+              "quantity": 19600,
+              "amount": 50029.979999999996,
+              "cost": 23.0,
+              "pnl": 0.0
+            },
+            {
+              "dt": "2024-01-30 09:30:00",
+              "direction": "SELL",
+              "price": 2.45754,
+              "quantity": 19600,
+              "amount": 48167.784,
+              "cost": 23.0,
+              "pnl": -1885.1959999999965
+            }
+          ]
+        }
+      },
+      "finished_at": "2026-03-18T23:11:00"
+    },
+    {
       "report_id": "1773838643270-1b37",
       "created_at": "2026-03-18T20:57:23",
       "stock_code": "002506.SZ",

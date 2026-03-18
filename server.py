@@ -9,9 +9,15 @@ import numbers
 import re
 import urllib.request
 import urllib.error
+import io
+import pandas as pd
+import numpy as np
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.lines as mlines
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
@@ -28,6 +34,9 @@ from src.strategies.strategy_manager_repo import (
     set_strategy_enabled
 )
 from src.utils.stock_manager import stock_manager
+from src.utils.data_provider import DataProvider
+from src.utils.tushare_provider import TushareProvider
+from src.utils.akshare_provider import AkshareProvider
 
 import logging
 
@@ -68,6 +77,8 @@ latest_backtest_result = None
 latest_strategy_reports = {}
 current_backtest_report = None
 current_backtest_progress = {"progress": 0, "current_date": None}
+current_backtest_trades = []
+kline_daily_cache = {}
 report_history = []
 REPORTS_DIR = os.path.join("data", "reports")
 REPORTS_FILE = os.path.join(REPORTS_DIR, "backtest_reports.json")
@@ -125,7 +136,7 @@ def _sanitize_non_finite(obj):
     return obj
 
 def start_new_backtest_report(stock_code, strategy_id, request_payload=None):
-    global current_backtest_report, latest_backtest_result, latest_strategy_reports, current_backtest_progress
+    global current_backtest_report, latest_backtest_result, latest_strategy_reports, current_backtest_progress, current_backtest_trades
     report_id = f"{int(datetime.now().timestamp() * 1000)}-{os.urandom(2).hex()}"
     current_backtest_report = {
         "report_id": report_id,
@@ -142,6 +153,7 @@ def start_new_backtest_report(stock_code, strategy_id, request_payload=None):
     latest_backtest_result = None
     latest_strategy_reports = {}
     current_backtest_progress = {"progress": 0, "current_date": None}
+    current_backtest_trades = []
     return report_id
 
 def finalize_current_backtest_report():
@@ -563,6 +575,106 @@ async def api_report_detail(report_id: str):
         return {"summary": None, "ranking": [], "strategy_reports": []}
 
 
+@app.get("/api/report/strategy/kline_data")
+async def api_report_strategy_kline_data(report_id: str, strategy_id: str):
+    try:
+        load_report_history()
+        target_report = None
+        for r in report_history if isinstance(report_history, list) else []:
+            if isinstance(r, dict) and str(r.get("report_id")) == str(report_id):
+                target_report = r
+                break
+        if not isinstance(target_report, dict):
+            return {"status": "error", "msg": "report not found"}
+        strategy_reports = target_report.get("strategy_reports") if isinstance(target_report.get("strategy_reports"), dict) else {}
+        srep = strategy_reports.get(str(strategy_id))
+        if not isinstance(srep, dict):
+            return {"status": "error", "msg": "strategy report not found"}
+        summary = target_report.get("summary") if isinstance(target_report.get("summary"), dict) else {}
+        stock_code = _normalize_symbol(target_report.get("stock_code") or summary.get("stock") or "")
+        if not stock_code:
+            return {"status": "error", "msg": "missing stock code"}
+        start_text = str(srep.get("start_date") or "").strip()
+        end_text = str(srep.get("end_date") or "").strip()
+        if not start_text or not end_text:
+            return {"status": "error", "msg": "missing strategy period"}
+        start_dt = pd.to_datetime(start_text)
+        end_dt = pd.to_datetime(end_text)
+        if pd.isna(start_dt) or pd.isna(end_dt):
+            return {"status": "error", "msg": "invalid strategy period"}
+        period_label = _strategy_period_label(strategy_id)
+        interval = _period_label_to_interval(period_label)
+        provider = _select_provider()
+        df = provider.fetch_kline_data(stock_code, start_dt, end_dt, interval=interval) if hasattr(provider, "fetch_kline_data") else pd.DataFrame()
+        if df is None or df.empty:
+            return {"status": "error", "msg": "no kline data"}
+        if "dt" not in df.columns:
+            return {"status": "error", "msg": "missing dt"}
+        if "vol" not in df.columns and "volume" in df.columns:
+            df["vol"] = df["volume"]
+        if "volume" not in df.columns and "vol" in df.columns:
+            df["volume"] = df["vol"]
+        for c in ["open", "high", "low", "close", "volume"]:
+            if c not in df.columns:
+                return {"status": "error", "msg": f"missing {c}"}
+        df["dt"] = pd.to_datetime(df["dt"])
+        df = df.dropna(subset=["dt"]).sort_values("dt")
+        candles = []
+        volumes = []
+        candle_keys = set()
+        for _, row in df.iterrows():
+            ts = int(pd.Timestamp(row["dt"]).timestamp())
+            candle_keys.add(ts)
+            o = float(row["open"])
+            c = float(row["close"])
+            candles.append({
+                "time": ts,
+                "open": o,
+                "high": float(row["high"]),
+                "low": float(row["low"]),
+                "close": c
+            })
+            volumes.append({
+                "time": ts,
+                "value": float(row["volume"]),
+                "color": "#ef4444" if c >= o else "#22c55e"
+            })
+        trade_rows = srep.get("trade_details") if isinstance(srep.get("trade_details"), list) else []
+        markers = []
+        for t in trade_rows:
+            if not isinstance(t, dict):
+                continue
+            dt = pd.to_datetime(t.get("dt"))
+            if pd.isna(dt):
+                continue
+            marker_ts = int(pd.Timestamp(dt).timestamp())
+            if interval == "D":
+                marker_ts = int(pd.Timestamp(dt.date()).timestamp())
+            direction = str(t.get("direction", "")).upper()
+            is_buy = direction == "BUY"
+            price_val = float(t.get("price", 0) or 0)
+            markers.append({
+                "time": marker_ts,
+                "position": "belowBar" if is_buy else "aboveBar",
+                "shape": "arrowUp" if is_buy else "arrowDown",
+                "color": "#ef4444" if is_buy else "#22c55e",
+                "text": f"{'买' if is_buy else '卖'} {price_val:.2f}"
+            })
+        return {
+            "status": "success",
+            "stock": stock_code,
+            "interval": interval,
+            "period_label": period_label,
+            "strategy_id": str(strategy_id),
+            "candles": candles,
+            "volumes": volumes,
+            "markers": markers
+        }
+    except Exception as e:
+        logger.error(f"/api/report/strategy_kline_data failed: {e}", exc_info=True)
+        return {"status": "error", "msg": str(e)}
+
+
 @app.post("/api/report/delete")
 async def api_report_delete(req: ReportDeleteRequest):
     global report_history, latest_backtest_result, latest_strategy_reports
@@ -586,6 +698,259 @@ async def api_report_delete(req: ReportDeleteRequest):
     except Exception as e:
         logger.error(f"/api/report/delete failed: {e}", exc_info=True)
         return {"status": "error", "msg": str(e)}
+
+
+def _select_provider():
+    cfg = ConfigLoader.reload()
+    provider_source = current_provider_source or cfg.get("data_provider.source", "default")
+    if provider_source == "tushare":
+        return TushareProvider(token=cfg.get("data_provider.tushare_token"))
+    if provider_source == "akshare":
+        return AkshareProvider()
+    return DataProvider()
+
+
+def _normalize_symbol(code):
+    c = str(code or "").strip().upper()
+    if c.endswith(".SH") or c.endswith(".SZ"):
+        return c
+    if len(c) == 6 and c.isdigit():
+        return f"{c}.SH" if c.startswith("6") else f"{c}.SZ"
+    return c
+
+
+def _period_label_to_interval(period_label):
+    p = str(period_label or "").strip()
+    if p in {"1分钟", "1min"}:
+        return "1min"
+    if p in {"5分钟", "5min"}:
+        return "5min"
+    if p in {"10分钟", "10min"}:
+        return "10min"
+    if p in {"15分钟", "15min"}:
+        return "15min"
+    if p in {"30分钟", "30min"}:
+        return "30min"
+    if p in {"60分钟", "60min", "1小时"}:
+        return "60min"
+    return "D"
+
+
+def _strategy_period_label(strategy_id):
+    sid = str(strategy_id or "")
+    mapping = {
+        "00": "日线",
+        "01": "60分钟",
+        "02": "1分钟",
+        "03": "日线",
+        "04": "日线",
+        "05": "30分钟",
+        "06": "1分钟",
+        "07": "15分钟",
+        "08": "1分钟",
+        "09": "日线",
+    }
+    return mapping.get(sid, "1分钟")
+
+
+def _cache_key_daily(stock_code, start_dt, end_dt):
+    return f"{stock_code}|{start_dt.strftime('%Y-%m-%d')}|{end_dt.strftime('%Y-%m-%d')}"
+
+
+def _get_cached_daily_df(stock_code, start_dt, end_dt):
+    key = _cache_key_daily(stock_code, start_dt, end_dt)
+    cached = kline_daily_cache.get(key)
+    if isinstance(cached, pd.DataFrame) and not cached.empty:
+        return cached.copy()
+    provider = _select_provider()
+    df = pd.DataFrame()
+    if hasattr(provider, "fetch_kline_data"):
+        df = provider.fetch_kline_data(stock_code, start_dt, end_dt, interval="D")
+    if (df is None or df.empty) and hasattr(provider, "fetch_minute_data"):
+        mdf = provider.fetch_minute_data(stock_code, start_dt, end_dt)
+        if mdf is not None and not mdf.empty:
+            from src.utils.indicators import Indicators
+            df = Indicators.resample(mdf, "D")
+    if df is None or df.empty:
+        return pd.DataFrame()
+    kline_daily_cache[key] = df.copy()
+    if len(kline_daily_cache) > 20:
+        first_key = next(iter(kline_daily_cache))
+        if first_key != key:
+            kline_daily_cache.pop(first_key, None)
+    return df.copy()
+
+
+def _build_backtest_kline_payload(stock_code, start_dt, end_dt):
+    df = _get_cached_daily_df(stock_code, start_dt, end_dt)
+    if df is None or df.empty:
+        return None
+    if "dt" not in df.columns:
+        raise RuntimeError("missing dt")
+    if "vol" not in df.columns and "volume" in df.columns:
+        df["vol"] = df["volume"]
+    if "volume" not in df.columns and "vol" in df.columns:
+        df["volume"] = df["vol"]
+    for c in ["open", "high", "low", "close", "volume"]:
+        if c not in df.columns:
+            raise RuntimeError(f"missing {c}")
+    df["dt"] = pd.to_datetime(df["dt"])
+    df = df.dropna(subset=["dt"]).sort_values("dt")
+    progress_date = None
+    progress_date_text = None
+    if current_backtest_report:
+        current_date = pd.to_datetime(current_backtest_progress.get("current_date"))
+        if not pd.isna(current_date):
+            progress_date = current_date
+            progress_date_text = current_date.strftime("%Y-%m-%d")
+    df = df[(df["dt"] >= start_dt) & (df["dt"] <= end_dt)]
+    if df.empty:
+        return {"candles": [], "volumes": [], "markers": [], "strategies": [], "progress_date": progress_date_text}
+    plot_df = df[["dt", "open", "high", "low", "close", "volume"]].copy()
+    plot_df["dt"] = pd.to_datetime(plot_df["dt"])
+    candles = []
+    volumes = []
+    for _, r in plot_df.iterrows():
+        t = r["dt"].strftime("%Y-%m-%d")
+        o = float(r["open"])
+        h = float(r["high"])
+        l = float(r["low"])
+        c = float(r["close"])
+        v = float(r["volume"])
+        candles.append({"time": t, "open": o, "high": h, "low": l, "close": c})
+        volumes.append({"time": t, "value": v, "color": "#ef4444" if c >= o else "#22c55e"})
+    symbol_plain = stock_code.replace(".SH", "").replace(".SZ", "")
+    trades = [
+        t for t in current_backtest_trades
+        if str(t.get("code", "")).replace(".SH", "").replace(".SZ", "") == symbol_plain
+    ]
+    strategy_ids = sorted(set(str(t.get("strategy", "")).strip() for t in trades if str(t.get("strategy", "")).strip()))
+    palette = ["#3b82f6", "#8b5cf6", "#06b6d4", "#a855f7", "#f59e0b", "#eab308", "#6366f1", "#38bdf8", "#f97316", "#d946ef", "#0ea5e9", "#7c3aed"]
+    color_map = {sid: palette[i % len(palette)] for i, sid in enumerate(strategy_ids)}
+    strategy_name_map = {str(x.get("id", "")): str(x.get("name", "")) for x in list_all_strategy_meta()}
+    markers = []
+    for t in trades:
+        sid = str(t.get("strategy", "")).strip()
+        if not sid:
+            continue
+        dt = pd.to_datetime(t.get("dt"))
+        if pd.isna(dt):
+            continue
+        d = dt.strftime("%Y-%m-%d")
+        if d < start_dt.strftime("%Y-%m-%d") or d > end_dt.strftime("%Y-%m-%d"):
+            continue
+        if progress_date is not None and dt.date() > progress_date.date():
+            continue
+        direction = str(t.get("dir", "")).upper()
+        is_buy = direction == "BUY"
+        markers.append({
+            "time": d,
+            "strategy_id": sid,
+            "position": "belowBar" if is_buy else "aboveBar",
+            "shape": "arrowUp" if is_buy else "arrowDown",
+            "color": color_map.get(sid, "#60a5fa"),
+            "text": f"{strategy_name_map.get(sid, f'策略{sid}')} {'买' if is_buy else '卖'}"
+        })
+    strategy_legends = [{"id": sid, "name": strategy_name_map.get(sid, f"策略{sid}"), "color": color_map[sid]} for sid in strategy_ids]
+    return {
+        "candles": candles,
+        "volumes": volumes,
+        "markers": markers,
+        "strategies": strategy_legends,
+        "progress_date": progress_date_text
+    }
+
+
+@app.get("/api/backtest/kline_data")
+async def api_backtest_kline_data(stock: str, start: str, end: str):
+    try:
+        stock_code = _normalize_symbol(stock)
+        start_dt = pd.to_datetime(start)
+        end_dt = pd.to_datetime(end)
+        if pd.isna(start_dt) or pd.isna(end_dt) or start_dt > end_dt:
+            return {"status": "error", "msg": "invalid date range"}
+        payload = _build_backtest_kline_payload(stock_code, start_dt, end_dt)
+        if payload is None:
+            return {"status": "error", "msg": "no data"}
+        return {"status": "success", "stock": stock_code, **payload}
+    except Exception as e:
+        logger.error(f"/api/backtest/kline_data failed: {e}", exc_info=True)
+        return {"status": "error", "msg": str(e)}
+
+
+@app.get("/api/backtest/kline_chart")
+async def api_backtest_kline_chart(stock: str, start: str, end: str):
+    try:
+        import mplfinance as mpf
+        import matplotlib.pyplot as plt
+        stock_code = _normalize_symbol(stock)
+        start_dt = pd.to_datetime(start)
+        end_dt = pd.to_datetime(end)
+        if pd.isna(start_dt) or pd.isna(end_dt) or start_dt > end_dt:
+            return Response(content="invalid date range", media_type="text/plain", status_code=400)
+        payload = _build_backtest_kline_payload(stock_code, start_dt, end_dt)
+        if payload is None:
+            return Response(content="no data", media_type="text/plain", status_code=404)
+        if not payload["candles"]:
+            return Response(content="no visible bars", media_type="text/plain", status_code=404)
+        plot_df = pd.DataFrame(payload["candles"]).copy()
+        plot_df["Date"] = pd.to_datetime(plot_df["time"])
+        plot_df = plot_df.set_index("Date")
+        plot_df = plot_df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close"})
+        vol_df = pd.DataFrame(payload["volumes"]).copy()
+        vol_df["Date"] = pd.to_datetime(vol_df["time"])
+        vol_df = vol_df.set_index("Date")
+        plot_df["Volume"] = vol_df["value"]
+        strategy_ids = [x["id"] for x in payload["strategies"]]
+        color_map = {x["id"]: x["color"] for x in payload["strategies"]}
+        date_index_map = {d.strftime("%Y-%m-%d"): d for d in plot_df.index}
+        buy_map = {sid: pd.Series(np.nan, index=plot_df.index) for sid in strategy_ids}
+        sell_map = {sid: pd.Series(np.nan, index=plot_df.index) for sid in strategy_ids}
+        for m in payload["markers"]:
+            sid = str(m.get("strategy_id", ""))
+            if sid not in buy_map:
+                continue
+            t = str(m.get("time", ""))
+            candle_dt = date_index_map.get(t)
+            if candle_dt is None:
+                continue
+            if m.get("shape") == "arrowUp":
+                buy_map[sid].loc[candle_dt] = float(plot_df.loc[candle_dt, "Low"]) * 0.995
+            else:
+                sell_map[sid].loc[candle_dt] = float(plot_df.loc[candle_dt, "High"]) * 1.005
+        addplots = []
+        legend_handles = []
+        for st in payload["strategies"]:
+            sid = st["id"]
+            color = color_map[sid]
+            if buy_map[sid].notna().any():
+                addplots.append(mpf.make_addplot(buy_map[sid], type="scatter", marker="^", markersize=60, color=color, panel=0))
+            if sell_map[sid].notna().any():
+                addplots.append(mpf.make_addplot(sell_map[sid], type="scatter", marker="v", markersize=60, color=color, panel=0))
+            legend_handles.append(mlines.Line2D([], [], color=color, marker="o", linestyle="None", label=st["name"]))
+        legend_handles.append(mlines.Line2D([], [], color="#e2e8f0", marker="^", linestyle="None", label="买入信号"))
+        legend_handles.append(mlines.Line2D([], [], color="#e2e8f0", marker="v", linestyle="None", label="卖出信号"))
+        plot_kwargs = {
+            "type": "candle",
+            "style": "charles",
+            "volume": True,
+            "title": f"{stock_code} 日K线（含成交量）",
+            "returnfig": True,
+            "figsize": (13, 8)
+        }
+        if addplots:
+            plot_kwargs["addplot"] = addplots
+        fig, axes = mpf.plot(plot_df, **plot_kwargs)
+        if axes and legend_handles:
+            axes[0].legend(handles=legend_handles, loc="upper left", fontsize=8, ncol=2, framealpha=0.65)
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=120, bbox_inches="tight")
+        plt.close(fig)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="image/png")
+    except Exception as e:
+        logger.error(f"/api/backtest/kline_chart failed: {e}", exc_info=True)
+        return Response(content=str(e), media_type="text/plain", status_code=500)
 
 # --- Control Endpoints for External Systems (e.g. OpenClaw) ---
 @app.post("/api/control/start_backtest")
@@ -928,7 +1293,7 @@ async def run_backtest_task(stock_code, strategy_id, strategy_mode=None, start=N
         fail_current_backtest_report(str(e))
 
 async def emit_event_to_ws(event_type, data):
-    global latest_backtest_result, latest_strategy_reports, current_backtest_report, current_backtest_progress
+    global latest_backtest_result, latest_strategy_reports, current_backtest_report, current_backtest_progress, current_backtest_trades
     if event_type == "backtest_result":
         latest_backtest_result = data
         if current_backtest_report is not None:
@@ -951,6 +1316,16 @@ async def emit_event_to_ws(event_type, data):
             latest_strategy_reports[sid] = data
             if current_backtest_report is not None:
                 current_backtest_report["strategy_reports"][sid] = data
+    elif event_type == "backtest_trade":
+        if isinstance(data, dict):
+            current_backtest_trades.append({
+                "dt": str(data.get("dt", "")),
+                "strategy": str(data.get("strategy", "")),
+                "code": str(data.get("code", "")),
+                "dir": str(data.get("dir", "")),
+                "price": float(data.get("price", 0.0) or 0.0),
+                "qty": int(data.get("qty", 0) or 0)
+            })
     # print(f"Emit: {event_type}")
     payload = {
         "type": event_type,

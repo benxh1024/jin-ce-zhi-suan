@@ -13,6 +13,7 @@
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
     <script>
         tailwind.config = {
@@ -304,6 +305,12 @@
             <div class="text-center">
                 <div class="text-[10px] text-trading-dim uppercase">风控</div>
                 <div class="font-mono font-bold text-lg text-trading-green" id="risk-level">稳健</div>
+            </div>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <div class="text-center">
+                <button id="kline-open-btn" onclick="openKlineModal()" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs border border-slate-500">
+                    <i class="fa-solid fa-chart-candlestick mr-1"></i> K线
+                </button>
             </div>
         </div>
 
@@ -632,7 +639,6 @@
                 <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                     <div class="bg-gradient-to-r from-blue-500 to-green-500 h-full w-[98.5%] animate-pulse" id="confidence-bar"></div>
                 </div>
-                <div id="confidence-desc" class="text-[10px] text-slate-500 mt-1 truncate">一致性 50% · 放行率 50% · 胜率 50%</div>
                 <div class="flex items-center justify-between text-[9px] mt-0.5 bg-slate-800/30 rounded px-2 py-1">
                     <span id="confidence-consistency-val" class="text-blue-300">一致性 --</span>
                     <span id="confidence-passrate-val" class="text-emerald-300">放行率 --</span>
@@ -747,6 +753,20 @@
             </div>
         </div>
     </div>
+    <div id="kline-modal" class="hidden fixed inset-0 bg-black/80 z-[155] items-center justify-center p-4">
+        <div class="w-[1200px] max-w-[98vw] h-[88vh] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+                <div class="text-white font-semibold text-sm" id="kline-modal-title">日K线与成交量</div>
+                <button onclick="closeKlineModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="px-4 py-2 text-xs text-slate-400 border-b border-slate-700" id="kline-modal-subtitle">--</div>
+            <div id="kline-modal-legend" class="px-4 py-2 text-[11px] text-slate-300 border-b border-slate-700 flex flex-wrap gap-3"></div>
+            <div class="flex-1 bg-slate-950 overflow-hidden">
+                <div id="kline-modal-chart" class="w-full h-full"></div>
+                <img id="kline-modal-image-fallback" class="hidden w-full h-full object-contain" alt="K线图（兼容模式）" />
+            </div>
+        </div>
+    </div>
 
     <div id="debug-panel" class="hidden fixed right-4 bottom-20 w-[440px] max-w-[92vw] bg-slate-900/95 border border-slate-700 rounded-lg shadow-2xl z-[120] overflow-hidden">
         <div class="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
@@ -819,6 +839,13 @@
         let backtestResultRecovered = false;
         let strategyManagerRows = [];
         let pendingGeneratedStrategy = null;
+        let klineModalTimer = null;
+        let klineModalOpened = false;
+        let currentBacktestChartCtx = null;
+        let klineLastProgressDate = null;
+        let klineChart = null;
+        let klineCandlesSeries = null;
+        let klineVolumeSeries = null;
         const STRATEGY_CODE_TEMPLATE_DEFAULT = `from src.strategies.implemented_strategies import BaseImplementedStrategy
 import pandas as pd
 from src.utils.indicators import Indicators
@@ -1266,6 +1293,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     break;
                 case 'backtest_progress':
                     updateBacktestProgress(data);
+                    refreshKlineModalImage(false, data.current_date || null);
                     break;
                 case 'backtest_flow':
                     renderBacktestFlow(data);
@@ -1279,6 +1307,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 case 'backtest_result':
                     showBacktestResults(data);
                     setBacktestButtonState(BACKTEST_BTN_STATE.idle);
+                    refreshKlineModalImage(true);
                     break;
                 case 'backtest_strategy_report':
                     upsertStrategyReport(data);
@@ -1707,14 +1736,10 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
 
             const valEl = document.getElementById('confidence-val');
             const barEl = document.getElementById('confidence-bar');
-            const descEl = document.getElementById('confidence-desc');
             if (valEl) setMetricText('confidence-val', `${score.toFixed(1)}%`, score);
             if (barEl) {
                 barEl.style.transition = 'width 360ms cubic-bezier(0.22,1,0.36,1)';
                 barEl.style.width = `${Math.max(0, Math.min(100, score)).toFixed(1)}%`;
-            }
-            if (descEl) {
-                descEl.innerText = `一致性 ${consistency.toFixed(1)}% · 放行率 ${riskPassRate.toFixed(1)}% · 胜率 ${recentWinRate.toFixed(1)}%`;
             }
             renderConfidenceSparkline(consistency, riskPassRate, recentWinRate);
             updateDebugPanel();
@@ -2660,6 +2685,13 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const capital = Number.isFinite(capitalRaw) && capitalRaw >= 10000 ? Math.floor(capitalRaw) : 1000000;
             const dates = getBacktestDateRange(range);
             if (!dates) return;
+            currentBacktestChartCtx = { stock: code, start: dates.start, end: dates.end };
+            klineLastProgressDate = null;
+            const klineBtn = document.getElementById('kline-open-btn');
+            if (klineBtn) klineBtn.classList.remove('hidden');
+            if (klineModalOpened) {
+                refreshKlineModalImage(true, null);
+            }
             const periodText = buildStrategyPeriodText(picked);
             logMessage('回测', `开始回测 ${code} (${dates.start}~${dates.end})，资金 ${capital.toLocaleString()}，策略周期：${periodText}`, 'warning');
             BT_STATE.progress = 0;
@@ -2718,6 +2750,153 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             else start.setFullYear(start.getFullYear() - 1);
             const fmt = (d) => d.toISOString().slice(0, 10);
             return { start: fmt(start), end: fmt(end) };
+        }
+
+        function ensureKlineChart() {
+            if (klineChart && klineCandlesSeries && klineVolumeSeries) return true;
+            const container = document.getElementById('kline-modal-chart');
+            if (!container || !window.LightweightCharts) return false;
+            klineChart = LightweightCharts.createChart(container, {
+                layout: { background: { color: '#020617' }, textColor: '#cbd5e1' },
+                grid: { vertLines: { color: 'rgba(148,163,184,0.1)' }, horzLines: { color: 'rgba(148,163,184,0.1)' } },
+                rightPriceScale: { borderColor: '#334155' },
+                timeScale: { borderColor: '#334155', timeVisible: true, secondsVisible: false }
+            });
+            const candleOpt = {
+                upColor: '#ef4444',
+                downColor: '#22c55e',
+                borderVisible: false,
+                wickUpColor: '#ef4444',
+                wickDownColor: '#22c55e'
+            };
+            const volumeOpt = {
+                priceFormat: { type: 'volume' },
+                priceScaleId: 'volume',
+                lastValueVisible: false,
+                priceLineVisible: false
+            };
+            if (typeof klineChart.addCandlestickSeries === 'function') {
+                klineCandlesSeries = klineChart.addCandlestickSeries(candleOpt);
+                klineVolumeSeries = klineChart.addHistogramSeries(volumeOpt);
+            } else if (typeof klineChart.addSeries === 'function' && window.LightweightCharts?.CandlestickSeries && window.LightweightCharts?.HistogramSeries) {
+                klineCandlesSeries = klineChart.addSeries(LightweightCharts.CandlestickSeries, candleOpt);
+                klineVolumeSeries = klineChart.addSeries(LightweightCharts.HistogramSeries, volumeOpt);
+            } else {
+                return false;
+            }
+            klineChart.priceScale('right').applyOptions({ scaleMargins: { top: 0.08, bottom: 0.32 } });
+            klineChart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+            return true;
+        }
+
+        function renderKlineLegend(items) {
+            const legend = document.getElementById('kline-modal-legend');
+            if (!legend) return;
+            const strategyHtml = (items || []).map(x => `<span class="inline-flex items-center gap-1"><i class="fa-solid fa-circle text-[9px]" style="color:${x.color}"></i>${x.name}</span>`).join('');
+            legend.innerHTML = `
+                ${strategyHtml || '<span class="text-slate-500">暂无策略标记</span>'}
+                <span class="inline-flex items-center gap-1 text-slate-400"><i class="fa-solid fa-arrow-up"></i>买入</span>
+                <span class="inline-flex items-center gap-1 text-slate-400"><i class="fa-solid fa-arrow-down"></i>卖出</span>
+            `;
+        }
+
+        function setKlineRenderMode(mode) {
+            const chartEl = document.getElementById('kline-modal-chart');
+            const imgEl = document.getElementById('kline-modal-image-fallback');
+            if (!chartEl || !imgEl) return;
+            if (mode === 'image') {
+                chartEl.classList.add('hidden');
+                imgEl.classList.remove('hidden');
+                return;
+            }
+            chartEl.classList.remove('hidden');
+            imgEl.classList.add('hidden');
+        }
+
+        function renderKlineChartData(payload) {
+            if (!ensureKlineChart()) return;
+            setKlineRenderMode('chart');
+            const candles = Array.isArray(payload?.candles) ? payload.candles : [];
+            const volumes = Array.isArray(payload?.volumes) ? payload.volumes : [];
+            const markers = Array.isArray(payload?.markers) ? payload.markers : [];
+            if (!candles.length) return;
+            klineCandlesSeries.setData(candles);
+            klineVolumeSeries.setData(volumes);
+            if (typeof klineCandlesSeries.setMarkers === 'function') {
+                klineCandlesSeries.setMarkers(markers);
+            } else if (typeof LightweightCharts?.createSeriesMarkers === 'function') {
+                LightweightCharts.createSeriesMarkers(klineCandlesSeries, markers);
+            }
+            klineChart.timeScale().fitContent();
+            renderKlineLegend(payload?.strategies || []);
+        }
+
+        function refreshKlineModalImage(force = false, progressDate = null) {
+            if (!klineModalOpened || !currentBacktestChartCtx) return;
+            const subtitle = document.getElementById('kline-modal-subtitle');
+            const { stock, start, end } = currentBacktestChartCtx;
+            if (!stock || !start || !end) return;
+            if (!force && progressDate && klineLastProgressDate === String(progressDate)) return;
+            if (progressDate) klineLastProgressDate = String(progressDate);
+            if (subtitle) subtitle.innerText = `${stock} · 区间 ${start} ~ ${end} · 按回测进度动态绘制${progressDate ? `（${progressDate}）` : ''}`;
+            const q = `stock=${encodeURIComponent(stock)}&start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&_t=${Date.now()}`;
+            const run = async () => {
+                try {
+                    const res = await fetch(`/api/backtest/kline_data?${q}`);
+                    if (!res.ok) {
+                        if (res.status === 404) {
+                            setKlineRenderMode('image');
+                            const img = document.getElementById('kline-modal-image-fallback');
+                            if (img) img.src = `/api/backtest/kline_chart?${q}`;
+                        }
+                        return;
+                    }
+                    const data = await res.json();
+                    if (data.status !== 'success' || !Array.isArray(data.candles) || data.candles.length === 0) {
+                        setKlineRenderMode('image');
+                        const img = document.getElementById('kline-modal-image-fallback');
+                        if (img) img.src = `/api/backtest/kline_chart?${q}`;
+                        return;
+                    }
+                    renderKlineChartData(data);
+                } catch (_) {
+                    setKlineRenderMode('image');
+                    const img = document.getElementById('kline-modal-image-fallback');
+                    if (img) img.src = `/api/backtest/kline_chart?${q}`;
+                }
+            };
+            if (force) return run();
+            if (klineModalTimer) return;
+            klineModalTimer = setTimeout(() => {
+                klineModalTimer = null;
+                run();
+            }, 600);
+        }
+
+        function openKlineModal() {
+            if (!currentBacktestChartCtx) return;
+            klineModalOpened = true;
+            const modal = document.getElementById('kline-modal');
+            const title = document.getElementById('kline-modal-title');
+            const container = document.getElementById('kline-modal-chart');
+            if (title) title.innerText = `日K线与成交量 · ${currentBacktestChartCtx.stock || '--'}`;
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            if (ensureKlineChart() && container && klineChart) {
+                klineChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+            }
+            refreshKlineModalImage(true);
+        }
+
+        function closeKlineModal() {
+            klineModalOpened = false;
+            const modal = document.getElementById('kline-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
         }
 
         function onBacktestRangeChange(value) {
@@ -3058,6 +3237,15 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
         // Initial Log
         logMessage('SYSTEM', '控制台就绪，等待连接...', 'info');
         restoreConsoleState();
+        document.getElementById('kline-modal')?.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'kline-modal') closeKlineModal();
+        });
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('kline-modal-chart');
+            if (klineChart && container && klineModalOpened) {
+                klineChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+            }
+        });
         onBacktestRangeChange(document.getElementById('bt-range-select')?.value || '1y');
         searchInput.addEventListener('change', persistConsoleState);
         document.getElementById('bt-start-date')?.addEventListener('change', persistConsoleState);
