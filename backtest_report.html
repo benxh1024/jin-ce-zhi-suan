@@ -50,6 +50,7 @@
                                     <th class="px-3 py-2 text-left">策略ID</th>
                                     <th class="px-3 py-2 text-left">使用周期</th>
                                     <th class="px-3 py-2 text-left">评级</th>
+                                    <th class="px-3 py-2 text-left">评分</th>
                                     <th class="px-3 py-2 text-left">年化收益</th>
                                     <th class="px-3 py-2 text-left">最大回撤</th>
                                     <th class="px-3 py-2 text-left">胜率</th>
@@ -255,7 +256,7 @@
             body.innerHTML = '';
             mobile.innerHTML = '';
             if (!ranking.length) {
-                body.innerHTML = '<tr><td colspan="9" class="px-3 py-6 text-center text-slate-500">暂无策略对比数据</td></tr>';
+                body.innerHTML = '<tr><td colspan="10" class="px-3 py-6 text-center text-slate-500">暂无策略对比数据</td></tr>';
                 mobile.innerHTML = '<div class="text-center text-slate-500 py-3">暂无策略对比数据</div>';
                 return;
             }
@@ -266,11 +267,13 @@
                 const roi = Number(r.annualized_roi || 0);
                 const dd = Number(r.max_dd || 0);
                 const winRate = Number(r.win_rate || 0);
+                const score = Number(r.score_total || 0);
                 tr.innerHTML = `
                     <td class="px-3 py-2">#${r.rank ?? '-'}</td>
                     <td class="px-3 py-2 font-mono">${sid}</td>
                     <td class="px-3 py-2">${STRATEGY_PERIOD_MAP[sid] || '--'}</td>
                     <td class="px-3 py-2">${r.rating ?? '-'}</td>
+                    <td class="px-3 py-2 text-yellow-300">${score.toFixed(1)}</td>
                     <td class="px-3 py-2 ${roi >= 0 ? 'text-rose-400' : 'text-emerald-400'}">${(roi*100).toFixed(2)}%</td>
                     <td class="px-3 py-2 text-rose-300">${(dd*100).toFixed(2)}%</td>
                     <td class="px-3 py-2 text-cyan-300">${(winRate*100).toFixed(2)}%</td>
@@ -282,6 +285,7 @@
                 card.className = 'bg-slate-800/50 border border-slate-700 rounded p-3 text-sm enter-anim transition-all duration-200 hover:border-slate-500 hover:-translate-y-0.5';
                 card.innerHTML = `
                     <div class="text-white font-semibold mb-1">#${r.rank ?? '-'} 策略 ${sid} · ${r.rating ?? '-'}</div>
+                    <div class="text-yellow-300">评分：${score.toFixed(1)} / 100</div>
                     <div class="text-slate-300">使用周期：${STRATEGY_PERIOD_MAP[sid] || '--'}</div>
                     <div class="${roi >= 0 ? 'text-rose-400' : 'text-emerald-400'}">年化收益：${(roi*100).toFixed(2)}%</div>
                     <div class="text-rose-300">最大回撤：${(dd*100).toFixed(2)}%</div>
@@ -333,8 +337,15 @@
                 const card = document.createElement('div');
                 card.id = `strategy-${sid}`;
                 card.className = 'bg-slate-800/50 border border-slate-700 rounded-lg p-4 text-sm enter-anim transition-all duration-200 hover:border-slate-500 hover:-translate-y-0.5';
+                const sc = r.scorecard || {};
+                const dim = sc.dimensions || {};
+                const profitability = Number((dim.profitability || {}).score || 0);
+                const riskControl = Number((dim.risk_control || {}).score || 0);
+                const pnlQuality = Number((dim.pnl_quality || {}).score || 0);
+                const practicality = Number((dim.practicality || {}).score || 0);
                 card.innerHTML = `
                     <div class="font-bold text-white mb-2">策略 ${sid} · ${sname}</div>
+                    <div class="text-yellow-300 mb-2">评分卡：${Number(sc.total_score || 0).toFixed(1)} / 100 · ${sc.grade || '--'}（${sc.conclusion || '--'}）</div>
                     <div class="mb-2 flex items-center gap-2">
                         <button onclick="openTradeDetails('${sid}')" class="text-xs bg-blue-700 hover:bg-blue-600 text-white px-2 py-1 rounded border border-blue-600">交易明细</button>
                         <button onclick="openStrategyKline('${sid}')" class="text-xs bg-indigo-700 hover:bg-indigo-600 text-white px-2 py-1 rounded border border-indigo-600">K线显示</button>
@@ -351,6 +362,10 @@
                     <div class="text-slate-300">胜率：${(Number(r.win_rate || 0)*100).toFixed(2)}%</div>
                     <div class="text-slate-300">平均盈利：${Number(r.avg_win || 0).toFixed(2)} | 平均亏损：${Number(r.avg_loss || 0).toFixed(2)}</div>
                     <div class="text-slate-300">盈亏比：${Number(r.profit_ratio || 0).toFixed(2)}</div>
+                    <div class="text-slate-300 mt-2">收益能力：${profitability.toFixed(1)} / 30</div>
+                    <div class="text-slate-300">风险控制：${riskControl.toFixed(1)} / 35</div>
+                    <div class="text-slate-300">盈亏质量：${pnlQuality.toFixed(1)} / 20</div>
+                    <div class="text-slate-300">实战可行：${practicality.toFixed(1)} / 15</div>
                 `;
                 wrap.appendChild(card);
             });

@@ -418,7 +418,8 @@ class BacktestCabinet:
                     transactions=strategy_transactions,
                     initial_capital=self.strategy_initial_capital,
                     start_date=start_date,
-                    end_date=end_date
+                    end_date=end_date,
+                    summary_metrics=report
                 )
                 await self._emit('backtest_strategy_report', formatted)
             ranking = self.rites.generate_ranking(reports)
