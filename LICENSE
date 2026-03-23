@@ -1,0 +1,97 @@
+项目名称 / Project: <金策智算智能投研决策系统>
+版权所有 / Copyright (c): <2026> <硅基流码>
+
+==================================================================
+中文（Chinese）
+==================================================================
+
+本项目采用“个人非商业免费 + 商业需授权”许可模式。
+
+一、允许（免费）
+在遵守本许可全部条款前提下，任何个人或组织可免费将本项目用于：
+1) 个人学习；
+2) 学术研究；
+3) 本地自用（非商业目的）。
+
+二、禁止（未经书面授权）
+未经作者事先书面授权，禁止以下行为（包括但不限于）：
+1) 任何商业用途；
+2) 以售卖、租赁、托管、SaaS、云服务方式对外提供本项目或其衍生服务；
+3) 二次包装、二次分发并销售；
+4) 以本项目为核心或主要价值进行盈利部署；
+5) 移除、篡改本项目的版权、许可、免责声明信息。
+
+三、商业授权
+如需商业使用，必须提前联系作者获得商业授权：
+- 联系方式：<邮箱/微信/网站>
+- 授权范围、费用、期限、支持条款以双方书面商业协议为准。
+
+四、衍生与分发
+1) 允许在非商业场景下修改源码供个人学习研究；
+2) 任何对外分发（源码或二进制）必须保留本许可全文及版权声明；
+3) 衍生作品不得暗示获得作者背书或官方支持。
+
+五、免责声明（重要）
+1) 本项目仅用于量化回测、本地数据处理与技术研究；
+2) 不构成任何投资建议，不荐股，不承诺任何收益；
+3) 作者不对使用本项目导致的任何直接或间接损失承担责任，包括但不限于交易损失、数据损失、业务中断等；
+4) 使用者应自行评估风险并遵守适用法律法规。
+
+六、违约与终止
+若使用者违反本许可任一条款，其使用授权自动终止。作者保留追究法律责任的权利。
+
+七、其他
+1) 本许可自首次发布之日起生效；
+2) 如本许可条款与商业协议冲突，以双方签署的商业协议为准；
+3) 本许可最终解释权归作者所有（在适用法律允许范围内）。
+
+生效日期：<2026-03-23>
+作者签名：<硅基流码>
+
+
+==================================================================
+English
+==================================================================
+
+This project is licensed under a “Free for Personal Non-Commercial Use + Commercial License Required” model.
+
+1. Free Permitted Use (Non-Commercial)
+Subject to full compliance with this License, any individual or organization may use this project for free for:
+a) personal learning;
+b) academic research;
+c) local self-use for non-commercial purposes.
+
+2. Prohibited Without Prior Written Authorization
+Without prior written authorization from the author, the following are prohibited (including but not limited to):
+a) any commercial use;
+b) offering this project (or derivatives) via sale, rental, hosting, SaaS, or cloud service;
+c) repackaging/reselling or commercial redistribution;
+d) profit-oriented deployment where this project is the core or primary value;
+e) removing or altering copyright, license, or disclaimer notices.
+
+3. Commercial Licensing
+For any commercial use, you must obtain a separate commercial license in advance:
+- Contact: <email/wechat/website>
+- Scope, fees, term, and support are subject to a separate written commercial agreement.
+
+4. Derivatives and Redistribution
+a) Modification is allowed for non-commercial learning/research;
+b) Any redistribution (source or binary) must retain this License and copyright notice;
+c) Derivative works must not imply endorsement or official support by the author.
+
+5. Disclaimer (Important)
+a) This project is for quantitative backtesting, local data tooling, and technical research only;
+b) It is NOT investment advice, does NOT recommend securities, and does NOT guarantee returns;
+c) The author shall not be liable for any direct or indirect damages arising from use of this project, including but not limited to trading losses, data loss, or business interruption;
+d) Users are solely responsible for risk assessment and legal/regulatory compliance.
+
+6. Breach and Termination
+Any violation of this License automatically terminates your rights under this License. The author reserves all legal remedies.
+
+7. Miscellaneous
+a) This License is effective from the first publication date;
+b) If there is any conflict between this License and a signed commercial agreement, the commercial agreement prevails;
+c) The author reserves the final right of interpretation to the extent permitted by applicable law.
+
+Effective Date: <2026-03-23>
+Author (optional signature): <Scott-ZT>
