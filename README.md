@@ -47,7 +47,10 @@
 - 数据源可切换：AkShare / Tushare / 默认 API / MySQL / PostgreSQL
 - 可视化运维：`server.py + dashboard.html` 提供操作面板
 
-<img width="2508" height="1431" alt="image" src="https://github.com/user-attachments/assets/dce52494-76c8-4c4b-ba22-772dd9cb8e83" />
+
+<img width="2508" height="1482" alt="image" src="https://github.com/user-attachments/assets/4be01afb-9a6a-4128-b02d-6aac704d776a" />
+<img width="2508" height="1482" alt="image" src="https://github.com/user-attachments/assets/3bcedbb3-329f-406b-a267-e3e8f32131b5" />
+
 
 
 ![](C:\Users\scott\AppData\Roaming\marktext\images\2026-03-23-22-14-57-image.png)
