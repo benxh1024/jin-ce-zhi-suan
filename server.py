@@ -18,7 +18,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.lines as mlines
 from matplotlib import font_manager
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse, Response, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -101,6 +101,9 @@ current_cabinet = None
 live_tasks: Dict[str, asyncio.Task] = {}
 live_cabinets: Dict[str, LiveCabinet] = {}
 live_strategy_profiles: Dict[str, Any] = {}
+live_capital_profiles: Dict[str, float] = {}
+live_capital_plan_mode: str = "equal"
+live_capital_plan_weights: Dict[str, float] = {}
 live_last_error: Optional[Dict[str, Any]] = None
 current_provider_source = None
 latest_backtest_result = None
@@ -241,6 +244,12 @@ def _normalize_live_codes(stock_code=None, stock_codes=None, cfg=None, use_defau
 def _live_running_codes():
     return [code for code, task in live_tasks.items() if task and (not task.done())]
 
+def _configured_live_codes(cfg=None):
+    c = cfg if cfg is not None else ConfigLoader.reload()
+    raw_targets = c.get("targets", [])
+    targets = raw_targets if isinstance(raw_targets, list) else []
+    return _normalize_live_codes(stock_codes=targets, cfg=c, use_default=False)
+
 async def _stop_live_tasks(stock_codes=None, clear_profile=False):
     global current_cabinet
     targets = _normalize_live_codes(stock_codes=stock_codes, use_default=False) if isinstance(stock_codes, list) else list(live_tasks.keys())
@@ -254,6 +263,7 @@ async def _stop_live_tasks(stock_codes=None, clear_profile=False):
         live_cabinets.pop(code, None)
         if clear_profile:
             live_strategy_profiles.pop(code, None)
+            live_capital_profiles.pop(code, None)
     if (not live_tasks) and (current_cabinet is not None):
         current_cabinet = None
     return stopped
@@ -377,7 +387,7 @@ def _load_live_fund_pool_snapshot(stock_code, include_transactions=False, tx_lim
     except Exception:
         return None
 
-def _collect_live_fund_pools(codes=None, include_transactions=False, tx_limit=200):
+def _collect_live_fund_pools(codes=None, include_transactions=False, tx_limit=200, include_persisted=False):
     target = []
     seen = set()
     if isinstance(codes, list):
@@ -392,7 +402,12 @@ def _collect_live_fund_pools(codes=None, include_transactions=False, tx_limit=20
             if code_u and code_u not in seen:
                 seen.add(code_u)
                 target.append(code_u)
-        if os.path.isdir(LIVE_FUND_POOL_DIR):
+        for code in _configured_live_codes():
+            code_u = str(code or "").strip().upper()
+            if code_u and code_u not in seen:
+                seen.add(code_u)
+                target.append(code_u)
+        if include_persisted and os.path.isdir(LIVE_FUND_POOL_DIR):
             for fn in os.listdir(LIVE_FUND_POOL_DIR):
                 if not str(fn).lower().endswith(".json"):
                     continue
@@ -406,6 +421,188 @@ def _collect_live_fund_pools(codes=None, include_transactions=False, tx_limit=20
         if isinstance(snap, dict):
             out[code] = snap
     return out
+
+def _capital_snapshot(codes=None):
+    target_codes = codes if isinstance(codes, list) else _live_running_codes()
+    out = {}
+    for code in target_codes:
+        cap = live_capital_profiles.get(code)
+        if cap is None:
+            cab = live_cabinets.get(code)
+            if cab is not None:
+                try:
+                    cap = float(getattr(cab.revenue, "initial_capital", 0.0) or 0.0)
+                except Exception:
+                    cap = None
+        if cap is not None:
+            out[code] = float(cap)
+    return out
+
+def _default_live_fund_pool_capital(stock_code, cfg=None):
+    code = str(stock_code or "").strip().upper()
+    if not code:
+        return 0.0
+    cap_profile = live_capital_profiles.get(code)
+    if cap_profile is not None:
+        try:
+            cap_val = float(cap_profile)
+            if cap_val > 0:
+                return cap_val
+        except Exception:
+            pass
+    cab = live_cabinets.get(code)
+    if cab is not None:
+        try:
+            cap_val = float(getattr(cab.revenue, "initial_capital", 0.0) or 0.0)
+            if cap_val > 0:
+                return cap_val
+        except Exception:
+            pass
+    c = cfg if cfg is not None else ConfigLoader.reload()
+    total_cap = float(c.get("system.initial_capital", 1000000.0) or 1000000.0)
+    cfg_codes = _configured_live_codes(c)
+    if cfg_codes and code in cfg_codes:
+        cap_map, _, _ = _build_live_capital_plan(
+            cfg_codes,
+            total_cap,
+            allocation_mode=live_capital_plan_mode,
+            allocation_weights=live_capital_plan_weights
+        )
+        cap_val = float(cap_map.get(code, 0.0) or 0.0)
+        if cap_val > 0:
+            return cap_val
+    return total_cap
+
+def _normalize_live_allocation_mode(mode=None):
+    m = str(mode or "equal").strip().lower()
+    if m in {"equal", "manual", "risk_parity"}:
+        return m
+    return "equal"
+
+def _normalize_live_weight_map(weights):
+    if not isinstance(weights, dict):
+        return {}
+    out = {}
+    for raw_code, raw_w in weights.items():
+        code = str(raw_code or "").strip().upper()
+        if not code:
+            continue
+        try:
+            w = float(raw_w)
+        except Exception:
+            continue
+        if w > 0:
+            out[code] = w
+    return out
+
+def _build_live_capital_plan(codes, total_capital, allocation_mode=None, allocation_weights=None):
+    target_codes = [str(c or "").strip().upper() for c in (codes or []) if str(c or "").strip()]
+    if not target_codes:
+        return {}, "equal", {}
+    mode = _normalize_live_allocation_mode(allocation_mode)
+    weights_in = _normalize_live_weight_map(allocation_weights)
+    raw_weights = {}
+    if mode == "manual":
+        for code in target_codes:
+            if code in weights_in:
+                raw_weights[code] = float(weights_in[code])
+            else:
+                raw_weights[code] = 1.0
+    elif mode == "risk_parity":
+        for code in target_codes:
+            raw_weights[code] = 1.0
+    else:
+        for code in target_codes:
+            raw_weights[code] = 1.0
+    weight_sum = float(sum(raw_weights.values()) or 0.0)
+    if weight_sum <= 0:
+        raw_weights = {code: 1.0 for code in target_codes}
+        weight_sum = float(len(target_codes))
+        mode = "equal"
+    cap_total = float(total_capital or 0.0)
+    capital_map = {}
+    normalized_weights = {}
+    for code in target_codes:
+        w_norm = float(raw_weights.get(code, 0.0) or 0.0) / weight_sum
+        normalized_weights[code] = w_norm
+        capital_map[code] = round(cap_total * w_norm, 4)
+    return capital_map, mode, normalized_weights
+
+WEBHOOK_CATEGORY_OPTIONS = [
+    {"value": "A", "label": "A 系统生命周期", "desc": "启动/停止/切换/配置生效等系统状态变化"},
+    {"value": "B", "label": "B 系统异常", "desc": "异常退出、报错、失败类系统消息"},
+    {"value": "C", "label": "C 交易决策", "desc": "策略信号（zhongshu）"},
+    {"value": "D", "label": "D 风控结果", "desc": "风控放行/驳回（menxia）"},
+    {"value": "E", "label": "E 成交执行", "desc": "成交回报（trade_exec）"},
+    {"value": "F", "label": "F 账户资金", "desc": "账户与资金池快照（account/fund_pool）"},
+    {"value": "G", "label": "G 监控告警", "desc": "实盘告警（live_alert）"},
+    {"value": "H", "label": "H 健康快照", "desc": "监控快照/数据新鲜度"},
+    {"value": "I", "label": "I 持仓手数", "desc": "持仓手数明细（live_position_lots）"},
+    {"value": "J", "label": "J 回测进度", "desc": "回测进度与流程（backtest_progress/backtest_flow）"},
+    {"value": "K", "label": "K 回测结果", "desc": "回测结果/失败/策略报告"},
+    {"value": "L", "label": "L 数据链路调试", "desc": "拉取K线/rt_min/stk_mins 等调试消息"}
+]
+
+def _webhook_system_category_by_msg(msg):
+    text = str(msg or "")
+    if (
+        ("正在拉取K线数据" in text)
+        or ("实盘实时拉取: rt_min" in text)
+        or ("历史回补: stk_mins" in text)
+    ):
+        return "L"
+    if (
+        ("异常" in text)
+        or ("失败" in text)
+        or ("error" in text.lower())
+        or ("Error" in text)
+        or ("退出" in text)
+    ):
+        return "B"
+    return "A"
+
+def _classify_webhook_category(event_type, data):
+    et = str(event_type or "").strip()
+    if et == "system":
+        msg = data.get("msg") if isinstance(data, dict) else str(data or "")
+        return _webhook_system_category_by_msg(msg)
+    if et == "zhongshu":
+        return "C"
+    if et == "menxia":
+        return "D"
+    if et == "trade_exec":
+        return "E"
+    if et in {"account", "fund_pool"}:
+        return "F"
+    if et == "live_alert":
+        return "G"
+    if et in {"live_monitor_snapshot", "live_kline_freshness"}:
+        return "H"
+    if et == "live_position_lots":
+        return "I"
+    if et in {"backtest_progress", "backtest_flow"}:
+        return "J"
+    if et in {"backtest_result", "backtest_failed", "backtest_strategy_report"}:
+        return "K"
+    return "A"
+
+def _should_notify_webhook_by_category(event_type, data):
+    cfg = ConfigLoader.reload()
+    section = cfg.get("webhook_notification", {})
+    section = section if isinstance(section, dict) else {}
+    mode = str(section.get("category_filter_mode", "off") or "off").strip().lower()
+    if mode not in {"whitelist", "blacklist"}:
+        return True
+    raw_codes = section.get("category_codes", [])
+    if not isinstance(raw_codes, list):
+        raw_codes = []
+    picked = {str(x or "").strip().upper() for x in raw_codes if str(x or "").strip()}
+    if not picked:
+        return True
+    cat = _classify_webhook_category(event_type, data)
+    if mode == "whitelist":
+        return cat in picked
+    return cat not in picked
 
 def _set_live_last_error(stock_code, stage, err, tb_text=None):
     global live_last_error
@@ -644,6 +841,95 @@ def _save_split_config(incoming):
 def is_live_enabled():
     cfg = ConfigLoader.reload()
     return bool(cfg.get("system.enable_live", True)) and _system_mode(cfg) == "live"
+
+def _build_provider_by_source(source: str, cfg=None):
+    c = cfg if cfg is not None else ConfigLoader.reload()
+    s = str(source or "default").strip().lower()
+    if s == "tushare":
+        return TushareProvider(token=c.get("data_provider.tushare_token"))
+    if s == "akshare":
+        return AkshareProvider()
+    if s == "mysql":
+        return MysqlProvider()
+    if s == "postgresql":
+        return PostgresProvider()
+    return DataProvider(
+        api_key=c.get("data_provider.default_api_key", ""),
+        base_url=c.get("data_provider.default_api_url", "")
+    )
+
+def _check_provider_connectivity_for_code(provider, provider_source: str, stock_code: str):
+    src = str(provider_source or "default").strip().lower()
+    code = str(stock_code or "").strip()
+    if not code:
+        return False, "stock_code 为空"
+    try:
+        if hasattr(provider, "check_connectivity"):
+            ok, msg = provider.check_connectivity(code)
+            return bool(ok), str(msg or "")
+        if src == "tushare":
+            pro = getattr(provider, "pro", None)
+            if pro is None:
+                return False, "tushare_token 未配置"
+            now = datetime.now()
+            start_time = now - timedelta(days=3)
+            pro.stk_mins(
+                ts_code=code,
+                freq="1min",
+                start_date=start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                end_date=now.strftime("%Y-%m-%d %H:%M:%S")
+            )
+            return True, "ok"
+        if src == "akshare":
+            bar = provider.get_latest_bar(code)
+            if bar:
+                return True, "ok"
+            return False, "akshare 连通性检查失败（未返回最新行情）"
+        return False, f"未知数据源: {src}"
+    except Exception as e:
+        return False, str(e)
+
+async def _emit_backtest_precheck_progress(progress: int, phase_label: str, period_text: str):
+    await emit_event_to_ws("backtest_progress", {
+        "progress": int(progress),
+        "phase": "data_fetch",
+        "phase_label": phase_label,
+        "current_date": period_text
+    })
+
+async def _run_backtest_provider_precheck(stock_code: str, start: Optional[str], end: Optional[str]):
+    cfg = ConfigLoader.reload()
+    provider_source = str(cfg.get("data_provider.source", "default") or "default").strip().lower()
+    period_text = f"{start or '--'} ~ {end or '--'}"
+    await _emit_backtest_precheck_progress(1, "回测启动前检查", period_text)
+    await emit_event_to_ws("backtest_flow", {
+        "module": "工部",
+        "level": "system",
+        "msg": f"回测启动前数据源检测：source={provider_source} code={stock_code}"
+    })
+    provider = _build_provider_by_source(provider_source, cfg=cfg)
+    await _emit_backtest_precheck_progress(3, "检查数据源连通性", period_text)
+    ok, reason = await asyncio.to_thread(_check_provider_connectivity_for_code, provider, provider_source, stock_code)
+    if ok:
+        await emit_event_to_ws("backtest_flow", {
+            "module": "工部",
+            "level": "success",
+            "msg": f"数据源连通性检测通过：source={provider_source}"
+        })
+        await _emit_backtest_precheck_progress(5, "连通性检测通过，准备启动回测", period_text)
+        return True, provider_source, "ok"
+    await emit_event_to_ws("backtest_flow", {
+        "module": "工部",
+        "level": "warning",
+        "msg": f"数据源连通性检测失败：source={provider_source} reason={reason}"
+    })
+    await emit_event_to_ws("backtest_failed", {
+        "msg": f"回测启动前连通性检测失败：source={provider_source} reason={reason}",
+        "stock": stock_code,
+        "provider_source": provider_source,
+        "stage": "startup_precheck"
+    })
+    return False, provider_source, str(reason or "")
 
 def load_report_history(force=False):
     global report_history, latest_backtest_result, latest_strategy_reports, report_history_mtime, report_detail_cache
@@ -902,6 +1188,9 @@ class LiveRequest(BaseModel):
     strategy_id: Optional[str] = None
     strategy_ids: Optional[list[str]] = None
     stock_strategy_map: Optional[dict[str, list[str]]] = None
+    total_capital: Optional[float] = None
+    allocation_mode: Optional[str] = None
+    allocation_weights: Optional[dict[str, float]] = None
     replace_existing: bool = True
 
 class StrategySwitchRequest(BaseModel):
@@ -1576,7 +1865,7 @@ async def api_get_config():
     try:
         cfg = ConfigLoader.reload()
         payload = _mask_secret_config(cfg.to_dict())
-        return {"status": "success", "config": payload}
+        return {"status": "success", "config": payload, "webhook_category_options": WEBHOOK_CATEGORY_OPTIONS}
     except Exception as e:
         logger.error(f"/api/config failed: {e}", exc_info=True)
         return {"status": "error", "msg": str(e), "config": {}}
@@ -2407,6 +2696,20 @@ async def api_start_live(req: LiveRequest):
     stock_strategy_map = _normalize_stock_strategy_map(req.stock_strategy_map)
     if bool(req.replace_existing):
         await _stop_live_tasks(clear_profile=True)
+    cfg = ConfigLoader.reload()
+    total_capital = float(req.total_capital if req.total_capital is not None else (cfg.get("system.initial_capital", 1000000.0) or 1000000.0))
+    all_target_codes = list(codes) if bool(req.replace_existing) else list(dict.fromkeys(_live_running_codes() + codes))
+    cap_plan, cap_mode, cap_weights = _build_live_capital_plan(
+        codes=all_target_codes,
+        total_capital=total_capital,
+        allocation_mode=req.allocation_mode,
+        allocation_weights=req.allocation_weights
+    )
+    global live_capital_plan_mode, live_capital_plan_weights
+    live_capital_plan_mode = cap_mode
+    live_capital_plan_weights = cap_weights
+    for code, cap in cap_plan.items():
+        live_capital_profiles[code] = float(cap)
     started = []
     already_running = []
     for stock_code in codes:
@@ -2424,7 +2727,17 @@ async def api_start_live(req: LiveRequest):
         return {"status": "info", "msg": "all targets already running", "running_codes": _live_running_codes(), "strategy_profiles": _profile_snapshot()}
     summary_text = _format_live_start_summary(started)
     await _broadcast_system_and_notify(f"当前实盘已启动：{summary_text}", started)
-    return {"status": "success", "msg": f"Live monitoring started for {','.join(started)}", "started_codes": started, "running_codes": _live_running_codes(), "strategy_profiles": _profile_snapshot()}
+    return {
+        "status": "success",
+        "msg": f"Live monitoring started for {','.join(started)}",
+        "started_codes": started,
+        "running_codes": _live_running_codes(),
+        "strategy_profiles": _profile_snapshot(),
+        "capital_profiles": _capital_snapshot(),
+        "capital_total": float(total_capital),
+        "allocation_mode": live_capital_plan_mode,
+        "allocation_weights": live_capital_plan_weights
+    }
 
 @app.post("/api/control/stop")
 async def api_stop_task():
@@ -2534,6 +2847,8 @@ async def api_get_status():
     backtest_running = cabinet_task is not None and not cabinet_task.done()
     running_codes = _live_running_codes()
     is_running = backtest_running or bool(running_codes)
+    live_cap_map = _capital_snapshot(running_codes)
+    live_cap_total = float(sum(float(v or 0.0) for v in live_cap_map.values()))
     return {
         "is_running": is_running,
         "backtest_running": backtest_running,
@@ -2541,6 +2856,10 @@ async def api_get_status():
         "live_running_codes": running_codes,
         "live_task_count": len(running_codes),
         "live_strategy_profiles": _profile_snapshot(running_codes),
+        "live_capital_profiles": live_cap_map,
+        "live_capital_total": live_cap_total,
+        "live_allocation_mode": str(live_capital_plan_mode or "equal"),
+        "live_allocation_weights": dict(live_capital_plan_weights or {}),
         "live_fund_pools": _collect_live_fund_pools(),
         "active_cabinet_type": type(current_cabinet).__name__ if current_cabinet else None,
         "live_last_error": live_last_error,
@@ -2568,7 +2887,7 @@ async def api_reset_live_fund_pool(req: LiveFundPoolResetRequest):
     if not code:
         return {"status": "error", "msg": "stock_code required"}
     cfg = ConfigLoader.reload()
-    cap = float(req.initial_capital) if req.initial_capital is not None else float(cfg.get("system.initial_capital", 1000000.0) or 1000000.0)
+    cap = float(req.initial_capital) if req.initial_capital is not None else float(_default_live_fund_pool_capital(code, cfg))
     if cap <= 0:
         return {"status": "error", "msg": "initial_capital must be positive"}
     cab = live_cabinets.get(code)
@@ -2854,6 +3173,20 @@ async def websocket_endpoint(websocket: WebSocket):
                     stock_strategy_map = _normalize_stock_strategy_map(cmd.get("stock_strategy_map"))
                     if replace_existing:
                         await _stop_live_tasks(clear_profile=True)
+                    cfg_live = ConfigLoader.reload()
+                    total_capital = float(cmd.get("total_capital") if cmd.get("total_capital") is not None else (cfg_live.get("system.initial_capital", 1000000.0) or 1000000.0))
+                    all_target_codes = list(codes) if replace_existing else list(dict.fromkeys(_live_running_codes() + codes))
+                    cap_plan, cap_mode, cap_weights = _build_live_capital_plan(
+                        codes=all_target_codes,
+                        total_capital=total_capital,
+                        allocation_mode=cmd.get("allocation_mode"),
+                        allocation_weights=cmd.get("allocation_weights")
+                    )
+                    global live_capital_plan_mode, live_capital_plan_weights
+                    live_capital_plan_mode = cap_mode
+                    live_capital_plan_weights = cap_weights
+                    for code, cap in cap_plan.items():
+                        live_capital_profiles[code] = float(cap)
                     started = []
                     already_running = []
                     for stock_code in codes:
@@ -2980,13 +3313,20 @@ async def run_cabinet_task(stock_code):
     async def _callback(event_type, data):
         await emit_event_to_ws(event_type, data, stock_code=stock_code)
 
+    profile = live_strategy_profiles.get(stock_code)
+    init_strategy_ids = None
+    if isinstance(profile, list):
+        init_strategy_ids = [str(x).strip() for x in profile if str(x).strip()]
+    elif str(profile or "").strip() and str(profile).strip().lower() != "all":
+        init_strategy_ids = [str(profile).strip()]
+    init_capital = float(live_capital_profiles.get(stock_code, config.get("system.initial_capital", 1000000.0)) or 0.0)
     cab = LiveCabinet(
         stock_code=stock_code,
-        initial_capital=float(config.get("system.initial_capital", 1000000.0) or 1000000.0),
+        initial_capital=init_capital,
         provider_type=provider_source,
-        event_callback=_callback
+        event_callback=_callback,
+        strategy_ids=init_strategy_ids
     )
-    profile = live_strategy_profiles.get(stock_code)
     if profile is not None:
         cab.set_active_strategies(profile)
     live_cabinets[stock_code] = cab
@@ -3022,6 +3362,14 @@ async def run_backtest_task(stock_code, strategy_id, strategy_mode=None, start=N
         end,
         capital,
     )
+    precheck_ok, precheck_source, precheck_reason = await _run_backtest_provider_precheck(
+        stock_code=stock_code,
+        start=start,
+        end=end
+    )
+    if not precheck_ok:
+        fail_current_backtest_report(f"backtest precheck failed source={precheck_source} reason={precheck_reason}")
+        return
     baseline_result = apply_backtest_baseline(
         stock_code=stock_code,
         strategy_id=strategy_id,
@@ -3115,17 +3463,8 @@ async def emit_event_to_ws(event_type, data, stock_code=None):
     if stock_code:
         payload["stock_code"] = stock_code
     await manager.broadcast(payload)
-    if stock_code:
-        skip_system_notify = False
-        if event_type == "system" and isinstance(emit_data, dict):
-            msg = str(emit_data.get("msg", "") or "")
-            if (
-                ("内阁实时监控已启动" in msg)
-                or ("当前实盘已启动" in msg)
-                or ("正在拉取K线数据" in msg)
-            ):
-                skip_system_notify = True
-        if not skip_system_notify:
+    if stock_code and event_type != "system":
+        if _should_notify_webhook_by_category(event_type=event_type, data=emit_data):
             await webhook_notifier.notify(event_type=event_type, data=emit_data, stock_code=stock_code)
 
 async def _broadcast_system_and_notify(msg: str, stock_codes=None):
@@ -3143,7 +3482,8 @@ async def _broadcast_system_and_notify(msg: str, stock_codes=None):
     if codes:
         notify_data["stock_codes"] = codes
     notify_stock_code = codes[0] if len(codes) == 1 else "MULTI"
-    await webhook_notifier.notify(event_type="system", data=notify_data, stock_code=notify_stock_code)
+    if _should_notify_webhook_by_category(event_type="system", data=notify_data):
+        await webhook_notifier.notify(event_type="system", data=notify_data, stock_code=notify_stock_code)
 
 @app.on_event("startup")
 async def startup_event():

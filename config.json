@@ -329,7 +329,16 @@
     "failed_events_file": "data/webhook_failed_events.jsonl",
     "failed_retry_interval_seconds": 30,
     "failed_retry_batch_size": 20,
-    "failed_max_retry": 20
+    "failed_max_retry": 20,
+    "category_filter_mode": "whitelist",
+    "category_codes": [
+      "A",
+      "B",
+      "C",
+      "E",
+      "F",
+      "I"
+    ]
   },
   "strategy_params": {
     "common": {

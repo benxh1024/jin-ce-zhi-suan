@@ -11,9 +11,10 @@ class TushareProvider:
     """
     Tushare Pro Data Provider
     """
-    def __init__(self, token=None):
+    def __init__(self, token=None, event_callback=None):
         # Default to a placeholder token if none provided. User must replace this.
         self.token = token
+        self.event_callback = event_callback
         cfg = ConfigLoader.reload()
         self._cache_enabled = bool(cfg.get("data_provider.local_cache_enabled", True))
         cache_dir = str(cfg.get("data_provider.local_cache_dir", "data/history/cache") or "data/history/cache")
@@ -34,6 +35,20 @@ class TushareProvider:
         else:
             self.pro = None
             print("⚠️ Warning: Tushare Token not provided. Please initialize with a valid token.")
+
+    def _emit_system_event(self, msg, code="", source="tushare"):
+        if not self.event_callback:
+            return
+        payload = {
+            "msg": str(msg or ""),
+            "stock": str(code or ""),
+            "source": str(source or "tushare")
+        }
+        try:
+            loop = __import__("asyncio").get_running_loop()
+            loop.create_task(self.event_callback("system", payload))
+        except Exception:
+            return
 
     def _cache_file_path(self, code, interval="1min"):
         safe_code = str(code).upper().replace(".", "_")
@@ -158,6 +173,7 @@ class TushareProvider:
         except Exception:
             return
 
+<<<<<<< HEAD
     def _load_rt_today_cache(self, code, day_text=None):
         path = self._rt_today_cache_file_path(code)
         if not os.path.exists(path):
@@ -223,6 +239,66 @@ class TushareProvider:
             "bars": int(len(df)),
             "last_dt": str(df["dt"].max())
         }
+=======
+    def _is_cn_trading_minutes(self, dt_obj):
+        dt = pd.to_datetime(dt_obj, errors="coerce")
+        if pd.isna(dt):
+            return False
+        if int(dt.weekday()) >= 5:
+            return False
+        hm = int(dt.hour) * 60 + int(dt.minute)
+        return (570 <= hm <= 690) or (780 <= hm <= 900)
+
+    def _should_use_rt_min(self, start_time, end_time):
+        now_ts = pd.Timestamp(datetime.now())
+        st = pd.to_datetime(start_time, errors="coerce")
+        et = pd.to_datetime(end_time, errors="coerce")
+        if pd.isna(st) or pd.isna(et):
+            return False
+        if (now_ts - et) > pd.Timedelta(minutes=30):
+            return False
+        if et.date() != now_ts.date():
+            return False
+        return self._is_cn_trading_minutes(et)
+
+    def _fetch_rt_min(self, code, start_time=None, end_time=None):
+        if not self.pro:
+            return pd.DataFrame()
+        try:
+            df = self.pro.rt_min(ts_code=code)
+        except Exception:
+            return pd.DataFrame()
+        if df is None or df.empty:
+            return pd.DataFrame()
+        work = df.copy()
+        if "time" in work.columns and "dt" not in work.columns:
+            today = datetime.now().strftime("%Y-%m-%d")
+            work["dt"] = pd.to_datetime(today + " " + work["time"].astype(str), errors="coerce")
+        elif "trade_time" in work.columns and "dt" not in work.columns:
+            work["dt"] = pd.to_datetime(work["trade_time"], errors="coerce")
+        if "ts_code" in work.columns and "code" not in work.columns:
+            work["code"] = work["ts_code"]
+        if "vol" not in work.columns and "volume" in work.columns:
+            work["vol"] = work["volume"]
+        if "amount" not in work.columns and "turnover" in work.columns:
+            work["amount"] = work["turnover"]
+        if "open" not in work.columns and "close" in work.columns:
+            work["open"] = work["close"]
+        if "high" not in work.columns and "close" in work.columns:
+            work["high"] = work["close"]
+        if "low" not in work.columns and "close" in work.columns:
+            work["low"] = work["close"]
+        work = self._normalize_minutes_df(work)
+        if work.empty:
+            return pd.DataFrame()
+        st = pd.to_datetime(start_time, errors="coerce") if start_time is not None else None
+        et = pd.to_datetime(end_time, errors="coerce") if end_time is not None else None
+        if st is not None and (not pd.isna(st)):
+            work = work[work["dt"] >= st]
+        if et is not None and (not pd.isna(et)):
+            work = work[work["dt"] <= et]
+        return work.reset_index(drop=True)
+>>>>>>> dfc25ee (feat: 启用实盘模式并增强数据源与资金管理功能)
 
     def set_token(self, token):
         self.token = token
@@ -385,6 +461,7 @@ class TushareProvider:
         hist_end = min(end_time, today_start - timedelta(seconds=1))
         hist_cached = pd.DataFrame()
         if not cached_df.empty:
+<<<<<<< HEAD
             hist_cached = cached_df[cached_df["dt"] < today_start].copy()
         hist_df = hist_cached.copy()
         if hist_end >= start_time:
@@ -424,6 +501,47 @@ class TushareProvider:
         out = out[(out["dt"] >= start_time) & (out["dt"] <= end_time)].copy()
         self._save_minute_cache(code, out)
         return out
+=======
+            fetch_start = cached_df["dt"].max() + timedelta(minutes=1)
+            if fetch_start > end_time:
+                return cached_df
+            
+        # Format dates: YYYY-MM-DD HH:MM:SS
+        start_str = fetch_start.strftime("%Y-%m-%d %H:%M:%S")
+        end_str = end_time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        try:
+            print(f"DEBUG: Requesting Tushare data for {code} ({start_str} - {end_str})")
+            df = pd.DataFrame()
+            use_rt_min = self._should_use_rt_min(fetch_start, end_time)
+            if use_rt_min:
+                log_msg = f"实盘实时拉取: rt_min | {code} | {start_str} -> {end_str}"
+                print(log_msg)
+                self._emit_system_event(log_msg, code=code, source="rt_min")
+                df = self._fetch_rt_min(code, fetch_start, end_time)
+            if df is None or df.empty:
+                log_msg = f"历史回补: stk_mins | {code} | {start_str} -> {end_str}"
+                print(log_msg)
+                self._emit_system_event(log_msg, code=code, source="stk_mins")
+                df = self.pro.stk_mins(ts_code=code, freq='1min', start_date=start_str, end_date=end_str)
+            
+            if df is None or df.empty:
+                print(f"⚠️ Tushare 分钟数据为空: {code} (rt_min/stk_mins)")
+                return cached_df if not cached_df.empty else pd.DataFrame()
+                
+            # Columns: ts_code, trade_time, open, close, high, low, vol, amount
+            # Rename
+            df = self._normalize_minutes_df(df)
+            if not cached_df.empty:
+                df = pd.concat([cached_df, df], ignore_index=True)
+                df = self._normalize_minutes_df(df)
+            self._save_minute_cache(code, df)
+            return df
+            
+        except Exception as e:
+            print(f"Error fetching Tushare history: {e}")
+            return cached_df if not cached_df.empty else pd.DataFrame()
+>>>>>>> dfc25ee (feat: 启用实盘模式并增强数据源与资金管理功能)
 
     def _fetch_stk_mins(self, code, start_time, end_time, freq="1min"):
         if not self.pro:
@@ -460,6 +578,12 @@ class TushareProvider:
             "60min": "60min"
         }
         if tf in freq_map:
+            if self._should_use_rt_min(start_time, end_time):
+                df_live_1m = self.fetch_minute_data(code, start_time, end_time)
+                if not df_live_1m.empty:
+                    df_live_tf = Indicators.resample(df_live_1m, tf)
+                    if not df_live_tf.empty:
+                        return df_live_tf
             df_tf = self._fetch_stk_mins(code, start_time, end_time, freq=freq_map[tf])
             if not df_tf.empty:
                 return df_tf

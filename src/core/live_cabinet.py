@@ -25,7 +25,7 @@ from src.utils.indicators import Indicators
 from src.utils.config_loader import ConfigLoader
 
 class LiveCabinet:
-    def __init__(self, stock_code, initial_capital=1000000.0, provider_type='default', tushare_token=None, event_callback=None):
+    def __init__(self, stock_code, initial_capital=1000000.0, provider_type='default', tushare_token=None, event_callback=None, strategy_ids=None):
         self.stock_code = stock_code
         self.event_callback = event_callback # Callback for UI updates
         self.config = ConfigLoader.reload()
@@ -33,7 +33,7 @@ class LiveCabinet:
         self.tushare_token = tushare_token or self.config.get("data_provider.tushare_token", "")
         
         if self.provider_type == 'tushare':
-            self.provider = TushareProvider(token=self.tushare_token)
+            self.provider = TushareProvider(token=self.tushare_token, event_callback=self._emit_event)
             print("🌐 Data Source: Tushare Pro")
         elif self.provider_type == 'akshare':
             self.provider = AkshareProvider()
@@ -47,7 +47,7 @@ class LiveCabinet:
         self._tushare_fallback_provider = None
         if self.provider_type != "tushare" and self.tushare_token:
             try:
-                self._tushare_fallback_provider = TushareProvider(token=self.tushare_token)
+                self._tushare_fallback_provider = TushareProvider(token=self.tushare_token, event_callback=self._emit_event)
             except Exception:
                 self._tushare_fallback_provider = None
         
@@ -65,7 +65,24 @@ class LiveCabinet:
         self.state_affairs = ShangshuSheng(self.revenue, self.war, self.justice)
 
         # Initialize Strategies
-        self.strategies = strategy_factory_module.create_strategies()
+        picked_ids = []
+        if isinstance(strategy_ids, list):
+            seen = set()
+            for item in strategy_ids:
+                sid = str(item or "").strip()
+                if (not sid) or sid in seen:
+                    continue
+                seen.add(sid)
+                picked_ids.append(sid)
+        use_active_filter = not bool(picked_ids)
+        all_strategies = strategy_factory_module.create_strategies(apply_active_filter=use_active_filter)
+        if picked_ids:
+            allowed = set(picked_ids)
+            self.strategies = [s for s in all_strategies if str(s.id).strip() in allowed]
+            if not self.strategies:
+                self.strategies = all_strategies
+        else:
+            self.strategies = all_strategies
         self.all_strategies = self.strategies
         self.secretariat = ZhongshuSheng(self.strategies)
         self.active_strategy_ids = [s.id for s in self.strategies] # Default all active
@@ -197,6 +214,27 @@ class LiveCabinet:
             "today_rt_cache_last_dt": today_rt_cache_last_dt,
             "provider_last_error": provider_last_error
         }
+
+    async def _emit_account_snapshot(self, holdings_value=None):
+        if holdings_value is None:
+            holdings_value = self._sum_holdings_value()
+        holdings = float(holdings_value or 0.0)
+        assets = float(self.revenue.cash or 0.0) + holdings
+        pos_ratio = (holdings / assets * 100.0) if assets > 0 else 0.0
+        day_start_assets = float(self._day_start_fund_value or 0.0)
+        if day_start_assets <= 0:
+            day_start_assets = float(assets)
+        pnl_amount = float(assets) - float(day_start_assets)
+        pnl_pct = (pnl_amount / float(day_start_assets) * 100.0) if day_start_assets > 0 else 0.0
+        await self._emit_event('account', {
+            'assets': round(assets, 2),
+            'cash': round(float(self.revenue.cash or 0.0), 2),
+            'day_start_assets': round(day_start_assets, 2),
+            'pnl_amount': round(pnl_amount, 2),
+            'pnl_pct': round(pnl_pct, 4),
+            'pnl': f"{pnl_pct:+.2f}%",
+            'pos_ratio': f"{pos_ratio:.2f}%"
+        })
 
     def _persist_virtual_fund_pool(self):
         os.makedirs(os.path.dirname(self._fund_pool_state_file), exist_ok=True)
@@ -755,17 +793,27 @@ class LiveCabinet:
         })
 
     def _today_turnover_ratio(self, current_dt, fund_value_now):
-        if float(fund_value_now or 0.0) <= 0:
+        base_fund_value = float(self._day_start_fund_value or 0.0)
+        if base_fund_value <= 0:
+            base_fund_value = float(fund_value_now or 0.0)
+        if base_fund_value <= 0:
             return 0.0
-        total = 0.0
+        buy_total = 0.0
+        sell_total = 0.0
         for tx in self.revenue.transactions:
             dt_val = pd.to_datetime(tx.get("dt"), errors="coerce")
             if pd.isna(dt_val):
                 continue
             if dt_val.date() != current_dt.date():
                 continue
-            total += float(tx.get("amount", 0.0) or 0.0)
-        return total / float(fund_value_now)
+            amount = abs(float(tx.get("amount", 0.0) or 0.0))
+            direction = str(tx.get("direction", "")).upper()
+            if direction == "SELL":
+                sell_total += amount
+            elif direction == "BUY":
+                buy_total += amount
+        effective_turnover = max(buy_total, sell_total)
+        return effective_turnover / base_fund_value
 
     def _live_lot_snapshot(self, current_dt):
         curr_day = pd.to_datetime(current_dt, errors="coerce")
@@ -902,9 +950,11 @@ class LiveCabinet:
         delay_warn_ms = delay_warn_s * 1000.0
         delay_critical_ms = delay_critical_s * 1000.0
         self.peak_fund_value = max(float(self.peak_fund_value), float(fund_value_now))
+        curve = [float(x) for x in self._intraday_fund_curve if x is not None]
+        daily_peak = max(curve) if curve else float(fund_value_now)
         drawdown = 0.0
-        if self.peak_fund_value > 0:
-            drawdown = max(0.0, (float(self.peak_fund_value) - float(fund_value_now)) / float(self.peak_fund_value))
+        if daily_peak > 0:
+            drawdown = max(0.0, (daily_peak - float(fund_value_now)) / daily_peak)
         pos_weight = 0.0
         if float(fund_value_now) > 0:
             pos_weight = float(holdings_value_now) / float(fund_value_now)
@@ -933,11 +983,7 @@ class LiveCabinet:
         await self._emit_event('init_strategies', strategy_list)
         
         # Emit initial account status
-        await self._emit_event('account', {
-            'assets': self.revenue.cash,
-            'pnl': "0.00%",
-            'pos_ratio': "0%" 
-        })
+        await self._emit_account_snapshot()
         await self._emit_event('fund_pool', self.get_fund_pool_snapshot(include_transactions=False))
         
         # Try warm up, but if it fails (e.g. no connection), we can still run in simulation mode for demo
@@ -1023,6 +1069,17 @@ class LiveCabinet:
             return hour >= 15 and minute == 0
         return True
 
+    def _is_market_session_time(self, dt_obj):
+        dt = pd.to_datetime(dt_obj, errors="coerce")
+        if pd.isna(dt):
+            return False
+        if not self._is_trading_day(dt):
+            return False
+        hhmm = int(dt.hour) * 100 + int(dt.minute)
+        in_morning = 930 <= hhmm < 1130
+        in_afternoon = 1300 <= hhmm < 1500
+        return in_morning or in_afternoon
+
     def _get_runnable_strategy_ids(self, current_dt):
         runnable = []
         for sid in self.active_strategy_ids:
@@ -1061,20 +1118,21 @@ class LiveCabinet:
         api_latency_ms = 0
         
         if simulation_mode:
-            # Generate Mock Bar
             import random
+            now_dt = datetime.now().replace(second=0, microsecond=0)
+            if not self._is_market_session_time(now_dt):
+                return
             if not self.last_dt:
-                self.last_dt = datetime.now()
                 self.current_price = 15.0 # Mock start price
-            else:
-                self.last_dt = self.last_dt + timedelta(minutes=1)
-                
+            self.last_dt = self._to_naive_ts(self.last_dt)
+            if self.last_dt is not None and (not pd.isna(self.last_dt)) and now_dt <= self.last_dt:
+                return
             change_pct = (random.random() - 0.5) * 0.02
             self.current_price = self.current_price * (1 + change_pct)
-            
+            self.last_dt = now_dt
             bar = {
                 'code': self.stock_code,
-                'dt': self.last_dt,
+                'dt': now_dt,
                 'open': self.current_price,
                 'high': self.current_price * 1.005,
                 'low': self.current_price * 0.995,
@@ -1082,7 +1140,7 @@ class LiveCabinet:
                 'vol': random.randint(1000, 10000),
                 'amount': random.randint(10000, 100000)
             }
-            current_dt = self.last_dt
+            current_dt = now_dt
         else:
             # 1. Get Real-time Data
             self._announce_kline_fetching(timeframe="1min")
@@ -1115,6 +1173,12 @@ class LiveCabinet:
                     print(f"⏳ 等待K线更新... (当前: {current_dt})", end='\r')
                 return
             self.last_dt = current_dt
+        now_wall = datetime.now()
+        if current_dt is not None and current_dt > (now_wall + timedelta(minutes=1)):
+            current_dt = now_wall.replace(second=0, microsecond=0)
+            bar['dt'] = current_dt
+        if not self._is_market_session_time(current_dt):
+            return
         if "volume" not in bar and "vol" in bar:
             bar["volume"] = bar["vol"]
         if "vol" not in bar and "volume" in bar:
@@ -1145,17 +1209,11 @@ class LiveCabinet:
         })
         holdings_value_now = self.state_affairs.update_holdings_value({bar['code']: bar['close']})
         fund_value_now = float(self.revenue.cash) + float(holdings_value_now)
-        pos_ratio_now = (holdings_value_now / fund_value_now * 100.0) if fund_value_now > 0 else 0.0
-        await self._emit_event('account', {
-            'assets': round(fund_value_now, 2),
-            'cash': round(float(self.revenue.cash), 2),
-            'pnl': "0.00%",
-            'pos_ratio': f"{pos_ratio_now:.2f}%"
-        })
+        self._ensure_daily_summary_state(current_dt, fund_value_now)
+        await self._emit_account_snapshot(holdings_value_now)
         await self._emit_event('fund_pool', self.get_fund_pool_snapshot(include_transactions=False))
 
         print(f"\n🆕 新K线生成: {current_dt} | Close: {bar['close']:.2f}")
-        self._ensure_daily_summary_state(current_dt, fund_value_now)
         
         # Check Archive
         await self._check_market_close(current_dt)
@@ -1285,11 +1343,7 @@ class LiveCabinet:
                     'status': 'bg-trading-green'
                 })
                     
-                    # Update Account UI
-                    await self._emit_event('account', {
-                        'assets': current_fund_value,
-                        'pnl': "0.00%" # TODO: Calc PnL
-                    })
+                    await self._emit_account_snapshot()
             else:
                 print(f"   ❌ 风控中心驳回: {reason}")
                 await self._emit_event('menxia', {
@@ -1327,6 +1381,7 @@ class LiveCabinet:
             })
             self._persist_virtual_fund_pool()
             await self._emit_event('fund_pool', self.get_fund_pool_snapshot(include_transactions=False))
+            await self._emit_account_snapshot()
         await self._emit_event('live_position_lots', self._live_lot_snapshot(current_dt))
 
     async def _check_market_close(self, current_dt):

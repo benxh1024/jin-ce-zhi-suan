@@ -208,6 +208,44 @@ class BacktestCabinet:
         except Exception as e:
             return False, str(e)
 
+    async def _fetch_minute_data_with_guard(self, provider, start_time, end_time, provider_source):
+        timeout_raw = int(self.config.get("system.backtest_data_fetch_timeout_sec", 240) or 240)
+        timeout_sec = max(30, min(timeout_raw, 3600))
+        heartbeat_raw = int(self.config.get("system.backtest_data_fetch_heartbeat_sec", 10) or 10)
+        heartbeat_sec = max(3, min(heartbeat_raw, 30))
+        started_at = perf_counter()
+        task = asyncio.create_task(asyncio.to_thread(provider.fetch_minute_data, self.stock_code, start_time, end_time))
+        heartbeat_count = 0
+        while True:
+            try:
+                df = await asyncio.wait_for(asyncio.shield(task), timeout=heartbeat_sec)
+                used = int(perf_counter() - started_at)
+                await self._emit('backtest_flow', {
+                    'module': '工部',
+                    'level': 'system',
+                    'msg': f'数据获取阶段：历史K线拉取完成 source={provider_source} 用时 {used}s'
+                })
+                return df, ""
+            except asyncio.TimeoutError:
+                waited = int(perf_counter() - started_at)
+                heartbeat_count += 1
+                progress = min(14, 6 + heartbeat_count)
+                await self._emit('backtest_progress', {
+                    'progress': progress,
+                    'phase': 'data_fetch',
+                    'phase_label': f'拉取历史K线（已等待 {waited}s）',
+                    'current_date': f'{start_time.date()} ~ {end_time.date()}'
+                })
+                await self._emit('backtest_flow', {
+                    'module': '工部',
+                    'level': 'system',
+                    'msg': f'数据获取阶段：历史K线拉取进行中 source={provider_source} 已等待 {waited}s'
+                })
+                if waited >= timeout_sec:
+                    if not task.done():
+                        task.cancel()
+                    return pd.DataFrame(), f'拉取超时（{timeout_sec}s）'
+
     def _compute_portfolio_snapshot(self, current_prices):
         holdings_value = 0.0
         cash_total = 0.0
@@ -489,7 +527,13 @@ class BacktestCabinet:
                 })
                 await self._emit('backtest_flow', {'module': '工部', 'level': 'system', 'msg': f'数据获取阶段：拉取历史K线 {start_date.date()}~{end_date.date()}'})
                 await self._yield_control(0.01)
-                df = await asyncio.to_thread(provider.fetch_minute_data, self.stock_code, start_date, end_date)
+                df, fetch_err = await self._fetch_minute_data_with_guard(provider, start_date, end_date, provider_source)
+                if fetch_err:
+                    await self._emit('backtest_flow', {
+                        'module': '工部',
+                        'level': 'warning',
+                        'msg': f'数据获取阶段：主源拉取异常 source={provider_source} {fetch_err}'
+                    })
                 if df.empty and enable_fallback:
                     token = self.config.get("data_provider.tushare_token")
                     if token and provider_source != 'tushare':
@@ -503,7 +547,7 @@ class BacktestCabinet:
                         await self._emit('backtest_flow', {'module': '工部', 'level': 'warning', 'msg': '数据获取阶段：主源无数据，切换 Tushare'})
                         await self._yield_control(0.01)
                         try:
-                            df = await asyncio.to_thread(TushareProvider(token=token).fetch_minute_data, self.stock_code, start_date, end_date)
+                            df, _ = await self._fetch_minute_data_with_guard(TushareProvider(token=token), start_date, end_date, 'tushare')
                         except Exception:
                             df = pd.DataFrame()
                 if df.empty and enable_fallback and provider_source != 'akshare':
@@ -517,7 +561,7 @@ class BacktestCabinet:
                     await self._emit('backtest_flow', {'module': '工部', 'level': 'warning', 'msg': '数据获取阶段：Tushare 无数据，切换 Akshare'})
                     await self._yield_control(0.01)
                     try:
-                        df = await asyncio.to_thread(AkshareProvider().fetch_minute_data, self.stock_code, start_date, end_date)
+                        df, _ = await self._fetch_minute_data_with_guard(AkshareProvider(), start_date, end_date, 'akshare')
                     except Exception:
                         df = pd.DataFrame()
                 if df.empty:

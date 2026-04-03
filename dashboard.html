@@ -175,7 +175,8 @@
         }
 
         #bt-range-select option,
-        #source-select option {
+        #source-select option,
+        #live-allocation-mode option {
             color: #0f172a;
             background-color: #f8fafc;
         }
@@ -420,9 +421,23 @@
             <div class="flex items-center gap-2 text-trading-dim text-xs font-bold uppercase tracking-widest border-b border-slate-700 pb-2">
                 <i class="fa-solid fa-chess-board"></i> 核心执行模块 (Core Execution)
             </div>
-            <div class="flex items-center gap-2 text-[10px] text-slate-400">
-                <span class="px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 border border-amber-700/50">展示看板</span>
-                <span>以展示与观测为主，部分字段为占位或弱联动</span>
+            <div class="flex items-stretch justify-between gap-3">
+                <div class="flex items-center gap-2 text-[10px] text-slate-400 min-w-0">
+                    <span class="px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 border border-amber-700/50">展示看板</span>
+                    <span class="truncate">以展示与观测为主，部分字段为占位或弱联动</span>
+                </div>
+                <div class="w-[340px] h-full shrink-0 bg-slate-900/60 border border-slate-700 rounded px-2 py-0.5 flex items-center gap-2">
+                    <div class="flex items-center justify-between text-[10px] text-slate-400 w-full">
+                        <span>智能决策置信度</span>
+                        <span class="text-trading-green" id="confidence-val">98.5%</span>
+                    </div>
+                    <div class="w-24 bg-slate-800 h-1 rounded-full overflow-hidden shrink-0">
+                        <div class="bg-gradient-to-r from-blue-500 to-green-500 h-full w-[98.5%] animate-pulse" id="confidence-bar"></div>
+                    </div>
+                    <span id="confidence-consistency-val" class="hidden">一致性 --</span>
+                    <span id="confidence-passrate-val" class="hidden">放行率 --</span>
+                    <span id="confidence-winrate-val" class="hidden">胜率 --</span>
+                </div>
             </div>
             
             <div class="grid grid-cols-2 grid-rows-3 gap-4 flex-1">
@@ -678,7 +693,7 @@
                                     </div>
                                     <div class="bg-slate-950/70 border border-slate-700 rounded p-1">
                                         <div class="text-slate-500">总资产</div>
-                                        <div id="fund-pool-assets" class="font-mono text-emerald-300">--</div>
+                                        <div id="fund-pool-assets" class="font-mono text-rose-300">--</div>
                                     </div>
                                     <div class="bg-slate-950/70 border border-slate-700 rounded p-1">
                                         <div class="text-slate-500">已实现盈亏</div>
@@ -689,6 +704,11 @@
                                     <div class="flex items-center justify-between mb-1">
                                         <div class="text-[10px] text-slate-400">资金曲线</div>
                                         <div class="flex items-center gap-2">
+                                            <select id="fund-pool-curve-metric" onchange="onFundPoolCurveMetricChange(this.value)" class="bg-slate-800 border border-slate-600 text-slate-200 rounded px-1 py-0.5 text-[10px]">
+                                                <option value="fund_value" selected>总资产曲线</option>
+                                                <option value="holdings_value">持仓曲线</option>
+                                                <option value="cash">现金曲线</option>
+                                            </select>
                                             <div id="fund-pool-curve-return" class="text-[10px] text-slate-300">区间收益 --</div>
                                             <div id="fund-pool-curve-meta" class="text-[10px] text-slate-500">--</div>
                                         </div>
@@ -697,12 +717,12 @@
                                         <div id="fund-pool-cum-return" class="text-slate-300">累计收益 --</div>
                                         <div id="fund-pool-max-dd" class="text-slate-300 text-right">最大回撤 --</div>
                                     </div>
-                                    <div class="text-[10px] text-slate-500 mb-1">绿线=总资产｜灰线=初始资金基准线</div>
-                                    <svg id="fund-pool-curve-svg" viewBox="0 0 320 72" preserveAspectRatio="none" class="w-full h-[72px]">
-                                        <rect x="0" y="0" width="320" height="72" fill="#020617" stroke="#334155" stroke-width="1"></rect>
+                                    <div id="fund-pool-curve-legend" class="text-[10px] text-slate-500 mb-1">红线=总资产｜灰线=初始资金基准线</div>
+                                    <svg id="fund-pool-curve-svg" viewBox="0 0 320 216" preserveAspectRatio="none" class="w-full h-[216px]">
+                                        <rect x="0" y="0" width="320" height="216" fill="#020617" stroke="#334155" stroke-width="1"></rect>
                                         <polyline id="fund-pool-curve-baseline" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3 3" points=""></polyline>
-                                        <polyline id="fund-pool-curve-line" fill="none" stroke="#34d399" stroke-width="2" points=""></polyline>
-                                        <circle id="fund-pool-curve-dot" cx="0" cy="0" r="2.8" fill="#34d399" opacity="0"></circle>
+                                        <polyline id="fund-pool-curve-line" fill="none" stroke="#f87171" stroke-width="2" points=""></polyline>
+                                        <circle id="fund-pool-curve-dot" cx="0" cy="0" r="2.8" fill="#f87171" opacity="0"></circle>
                                     </svg>
                                     <div id="fund-pool-curve-range" class="text-[10px] text-slate-500 mt-1">范围 --</div>
                                 </div>
@@ -786,8 +806,8 @@
     </main>
 
     <!-- Bottom Control Bar -->
-    <footer class="h-16 border-t border-slate-700 bg-trading-bg flex items-center justify-between px-6 z-20">
-        <div class="flex items-center gap-4">
+    <footer class="h-16 border-t border-slate-700 bg-trading-bg flex items-center justify-between px-4 z-20">
+        <div class="flex items-center gap-2">
             <div class="relative">
                 <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded border border-slate-600 focus-within:border-trading-blue focus-within:ring-1 focus-within:ring-trading-blue transition-all">
                     <span class="text-slate-400 text-xs"><i class="fa-solid fa-magnifying-glass"></i></span>
@@ -820,34 +840,10 @@
                 <span class="text-slate-400 text-xs"><i class="fa-solid fa-yen-sign"></i></span>
                 <input id="bt-capital-input" type="number" min="10000" step="10000" value="1000000" class="bg-transparent border-none text-white focus:outline-none w-28 text-xs font-mono" />
             </div>
-            <div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded border border-slate-600">
-                <span class="text-slate-400 text-xs"><i class="fa-solid fa-database"></i></span>
-                <select id="source-select" onchange="onSourceSelectChange(this.value)" class="bg-transparent text-white focus:outline-none text-xs font-medium">
-                    <option value="default">默认数据源</option>
-                    <option value="tushare">Tushare</option>
-                    <option value="akshare">AKShare</option>
-                    <option value="mysql">MySQL</option>
-                    <option value="postgresql">PostgreSQL</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Global Status Bar -->
-        <div class="w-[300px] ml-6 mr-3 flex items-center gap-3">
-            <div class="w-full">
-                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
-                    <span>智能决策置信度</span>
-                    <span class="text-trading-green" id="confidence-val">98.5%</span>
-                </div>
-                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div class="bg-gradient-to-r from-blue-500 to-green-500 h-full w-[98.5%] animate-pulse" id="confidence-bar"></div>
-                </div>
-                <div class="flex items-center justify-between text-[9px] mt-0.5 bg-slate-800/30 rounded px-2 py-1">
-                    <span id="confidence-consistency-val" class="text-blue-300">一致性 --</span>
-                    <span id="confidence-passrate-val" class="text-emerald-300">放行率 --</span>
-                    <span id="confidence-winrate-val" class="text-amber-300">胜率 --</span>
-                </div>
-            </div>
+            <button id="live-params-btn" onclick="toggleLiveParamsDrawer(true)" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded font-bold text-xs transition-all border border-slate-500 min-w-[92px]">
+                <i class="fa-solid fa-sliders"></i>
+                <span id="runtime-params-btn-label">运行参数</span>
+            </button>
         </div>
 
         <div id="action-cluster" class="flex items-center gap-2">
@@ -860,7 +856,7 @@
                 <i id="backtest-trigger-icon" class="fa-solid fa-play"></i>
                 <span id="backtest-trigger-label">立即回测</span>
             </button>
-            <div id="action-secondary-inline" class="flex items-center gap-2">
+            <div id="action-secondary-inline" class="flex items-center gap-2 flex-nowrap">
                 <button id="pattern-picker-btn" onclick="openPatternPicker()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded font-bold text-sm transition-all border border-slate-500 min-w-[108px]">
                     <i class="fa-solid fa-table-cells-large"></i>
                     <span>经典形态</span>
@@ -915,6 +911,48 @@
             </div>
         </div>
     </div>
+    <div id="live-params-drawer" class="fixed right-3 bottom-24 z-[141] w-[380px] max-w-[92vw] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden transition-all duration-200 translate-x-[110%] opacity-0 pointer-events-none">
+        <div class="px-3 py-2 border-b border-slate-700 flex items-center justify-between">
+            <div class="text-white font-bold text-sm"><i class="fa-solid fa-sliders mr-2 text-cyan-300"></i><span id="runtime-params-title">运行参数</span></div>
+            <button onclick="toggleLiveParamsDrawer(false)" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="p-3 space-y-2">
+            <div class="grid grid-cols-[92px_1fr] items-center gap-2 bg-slate-950/50 border border-slate-700 rounded p-2">
+                <div class="text-[11px] text-slate-300">数据源</div>
+                <div class="flex items-center gap-2 bg-slate-800 px-2.5 py-1.5 rounded border border-slate-600">
+                    <span class="text-slate-400 text-xs"><i class="fa-solid fa-database"></i></span>
+                    <select id="source-select" onchange="onSourceSelectChange(this.value)" class="bg-transparent text-white focus:outline-none text-xs font-medium w-full">
+                        <option value="default">默认数据源</option>
+                        <option value="tushare">Tushare</option>
+                        <option value="akshare">AKShare</option>
+                        <option value="mysql">MySQL</option>
+                        <option value="postgresql">PostgreSQL</option>
+                    </select>
+                </div>
+            </div>
+            <div id="runtime-live-allocation-mode-row" class="grid grid-cols-[92px_1fr] items-center gap-2 bg-slate-950/50 border border-slate-700 rounded p-2">
+                <div class="text-[11px] text-slate-300">分仓模式</div>
+                <div class="flex items-center gap-2 bg-slate-800 px-2.5 py-1.5 rounded border border-slate-600">
+                    <span class="text-slate-400 text-xs"><i class="fa-solid fa-scale-balanced"></i></span>
+                    <select id="live-allocation-mode" class="bg-transparent text-white focus:outline-none text-xs font-medium w-full">
+                        <option value="equal" selected>等权分仓</option>
+                        <option value="risk_parity">风险平价</option>
+                        <option value="manual">手工权重</option>
+                    </select>
+                </div>
+            </div>
+            <div id="runtime-live-allocation-weights-row" class="grid grid-cols-[92px_1fr] items-center gap-2 bg-slate-950/50 border border-slate-700 rounded p-2">
+                <div class="text-[11px] text-slate-300">手工权重</div>
+                <div class="flex items-center gap-2 bg-slate-800 px-2.5 py-1.5 rounded border border-slate-600">
+                    <span class="text-slate-400 text-xs"><i class="fa-solid fa-list-ol"></i></span>
+                    <input id="live-allocation-weights" type="text" placeholder="600406.SH=2,000001.SZ=1" class="bg-transparent border-none text-white focus:outline-none w-full text-[11px] font-mono" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="live-params-fab" onclick="toggleLiveParamsDrawer()" class="fixed right-3 bottom-24 z-[140] bg-cyan-700 hover:bg-cyan-600 text-white w-10 h-10 rounded-full border border-cyan-500 shadow-[0_0_12px_rgba(34,211,238,0.35)]">
+        <i class="fa-solid fa-sliders"></i>
+    </button>
     <div id="webhook-retry-modal" class="hidden fixed inset-0 bg-black/70 z-[146] flex items-center justify-center p-6">
         <div class="w-[1080px] max-w-[96vw] h-[78vh] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl flex flex-col overflow-hidden">
             <div class="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
@@ -1223,8 +1261,8 @@
         </div>
     </div>
     <div id="fund-pool-modal" class="hidden fixed inset-0 bg-black/80 z-[156] items-center justify-center p-4">
-        <div class="w-[980px] max-w-[98vw] h-[88vh] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl overflow-hidden flex flex-col">
-            <div class="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+        <div class="w-[980px] max-w-[98vw] h-[88vh] bg-slate-900 border border-rose-700/60 rounded-lg shadow-2xl overflow-hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-rose-900/60 flex items-center justify-between">
                 <div class="text-white font-semibold text-sm">资金池管理</div>
                 <button onclick="closeFundPoolModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -1329,7 +1367,11 @@
         let liveFundPoolSelectedCode = '';
         let liveFundTradeRows = [];
         let liveFundLastFetchAt = 0;
+        let liveFundCurveMetric = 'fund_value';
+        const FUND_POOL_PORTFOLIO_KEY = '__PORTFOLIO__';
+        const LIVE_ACCOUNT_GLOBAL_KEY = '__GLOBAL__';
         const liveFundCurveMap = {};
+        const liveAccountSnapshotMap = {};
         let fundPoolModalOpen = false;
         let panelHeightPrefs = { strategy: null, console: null, stream: null };
         let klineModalTimer = null;
@@ -1417,6 +1459,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             liveKlineFreshnessMap: {},
             liveFundPools: {},
             recentPnls: [],
+            backtestSummaryWinRate: null,
+            backtestReportWinRate: null,
             confidenceSeries: {
                 consistency: [],
                 passrate: [],
@@ -1832,15 +1876,18 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 case 'account':
                     let latestAssets = null;
                     let latestCash = null;
+                    let latestPosPct = null;
+                    let latestPnlPct = null;
                     if (data.assets !== undefined && data.assets !== null) {
                         const assetNum = Number(data.assets);
-                        setMetricText('total-assets', `¥ ${assetNum.toLocaleString()}`, assetNum);
-                        latestAssets = assetNum;
+                        if (Number.isFinite(assetNum)) latestAssets = assetNum;
                     }
-                    if (data.pnl !== undefined && data.pnl !== null) {
-                        const pnlNum = parseMetricNumber(data.pnl) ?? 0;
-                        setMetricText('daily-pnl', String(data.pnl), pnlNum);
-                        setDailyPnlStyle(pnlNum);
+                    if (data.pnl_pct !== undefined && data.pnl_pct !== null) {
+                        const pnlPctNum = Number(data.pnl_pct);
+                        if (Number.isFinite(pnlPctNum)) latestPnlPct = pnlPctNum;
+                    } else if (data.pnl !== undefined && data.pnl !== null) {
+                        const pnlNum = parseMetricNumber(data.pnl);
+                        if (Number.isFinite(pnlNum)) latestPnlPct = pnlNum;
                     }
                     if (data.pos_ratio !== undefined && data.pos_ratio !== null) {
                         const posNum = parseMetricNumber(data.pos_ratio) ?? 0;
@@ -1848,14 +1895,19 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     }
                     if (data.cash !== undefined) {
                         const cashNum = Number(data.cash);
-                        setMetricText('revenue-cash', cashNum.toLocaleString(), cashNum);
-                        latestCash = cashNum;
+                        if (Number.isFinite(cashNum)) latestCash = cashNum;
                     }
                     if (data.pos_ratio) {
-                        const availVal = (100 - Number(String(data.pos_ratio).replace('%','') || 0));
-                        setMetricText('personnel-available-pos', `${availVal.toFixed(1)}%`, availVal);
+                        const posNum = parseMetricNumber(data.pos_ratio);
+                        if (Number.isFinite(posNum)) latestPosPct = posNum;
                     }
-                    updateRevenueCashRatioBar(latestCash, latestAssets);
+                    mergeLiveAccountSnapshot(payload, data);
+                    refreshTopAccountMetricsFromSnapshots({
+                        assets: latestAssets,
+                        cash: latestCash,
+                        posRatioPct: latestPosPct,
+                        pnlPct: latestPnlPct
+                    });
                     pulsePanel('panel-hu');
                     break;
                 case 'live_tick':
@@ -1873,6 +1925,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                         if (DIAG_STATE.recentPnls.length > 20) DIAG_STATE.recentPnls.shift();
                         updateConfidenceScore();
                     }
+                    renderLiveTradeExec(data);
                     BT_STATE.totalTrades += 1;
                     pulsePanel('panel-bing');
                     break;
@@ -2088,6 +2141,41 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             return [code];
         }
 
+        function readLiveAllocationSettings() {
+            const modeSel = document.getElementById('live-allocation-mode');
+            const weightsInput = document.getElementById('live-allocation-weights');
+            const modeRaw = String(modeSel?.value || 'equal').trim().toLowerCase();
+            const mode = ['equal', 'risk_parity', 'manual'].includes(modeRaw) ? modeRaw : 'equal';
+            const text = String(weightsInput?.value || '').trim();
+            const weights = {};
+            if (text) {
+                text.split(/[,，;\n]+/).forEach(part => {
+                    const pair = String(part || '').trim();
+                    if (!pair) return;
+                    const m = pair.match(/^([0-9]{6}(?:\.(?:SH|SZ))?)\s*[:=]\s*([0-9]+(?:\.[0-9]+)?)$/i);
+                    if (!m) return;
+                    const code = normalizeCode(m[1]);
+                    const w = Number(m[2]);
+                    if (/^\d{6}\.(SH|SZ)$/.test(code) && Number.isFinite(w) && w > 0) {
+                        weights[code] = w;
+                    }
+                });
+            }
+            return { mode, weights };
+        }
+
+        async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 20000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), Math.max(1000, Number(timeoutMs || 20000)));
+            try {
+                const res = await fetch(url, { ...options, signal: controller.signal });
+                const data = await res.json();
+                return { res, data };
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
         async function startSimulation() {
             if (!liveEnabled) return;
             const targets = resolveLiveStartTargets();
@@ -2097,27 +2185,42 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             }
             const picked = Array.isArray(selectedStrategyIds) ? selectedStrategyIds.slice() : [];
             const useAll = picked.length === 0 || picked.length === strategyCatalog.length;
+            const allocation = readLiveAllocationSettings();
             const payload = { replace_existing: true };
+            const capInput = document.getElementById('bt-capital-input');
+            const capVal = Number(capInput?.value || 0);
+            if (Number.isFinite(capVal) && capVal > 0) payload.total_capital = capVal;
             if (targets.length === 1) payload.stock_code = targets[0];
             else payload.stock_codes = targets;
             if (!useAll) payload.strategy_ids = picked;
+            payload.allocation_mode = allocation.mode;
+            if (Object.keys(allocation.weights).length) payload.allocation_weights = allocation.weights;
             const targetSummary = targets.length > 1 ? `${targets.length}只标的` : targets[0];
             const strategySummary = useAll ? '全部策略' : `${picked.length}个策略`;
             logMessage('SYSTEM', `正在启动实盘监控：${targetSummary}，${strategySummary}`, 'system');
             try {
-                const res = await fetch('/api/control/start_live', {
+                const { res, data } = await fetchJsonWithTimeout('/api/control/start_live', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
-                });
-                const data = await res.json();
+                }, 20000);
                 if (!res.ok || (data.status !== 'success' && data.status !== 'info')) {
                     throw new Error(data.msg || '启动失败');
                 }
                 await syncStatus();
                 return true;
             } catch (e) {
-                logMessage('SYSTEM', `启动实盘失败: ${e}`, 'danger');
+                const msg = String(e?.message || e || '');
+                if (msg.includes('aborted')) {
+                    await syncStatus();
+                    if (liveRunning) {
+                        logMessage('SYSTEM', '启动请求超时，但任务已在后台运行', 'warning');
+                        return true;
+                    }
+                    logMessage('SYSTEM', '启动请求超时，请检查数据源连通性或服务负载', 'danger');
+                } else {
+                    logMessage('SYSTEM', `启动实盘失败: ${e}`, 'danger');
+                }
                 liveRunning = false;
                 renderLiveStatus();
                 return false;
@@ -2248,21 +2351,39 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             logMessage('SYSTEM', `正在切换监控标的: ${code}...`, 'warning');
             const picked = Array.isArray(selectedStrategyIds) ? selectedStrategyIds.slice() : [];
             const useAll = picked.length === 0 || picked.length === strategyCatalog.length;
+            const allocation = readLiveAllocationSettings();
             const payload = { stock_code: normalizeCode(code), replace_existing: true };
+            const capInput = document.getElementById('bt-capital-input');
+            const capVal = Number(capInput?.value || 0);
+            if (Number.isFinite(capVal) && capVal > 0) payload.total_capital = capVal;
             if (!useAll) payload.strategy_ids = picked;
+            payload.allocation_mode = allocation.mode;
+            if (Object.keys(allocation.weights).length) payload.allocation_weights = allocation.weights;
             try {
-                await fetch('/api/control/stop', { method: 'POST' });
-                const res = await fetch('/api/control/start_live', {
+                const stopResp = await fetchJsonWithTimeout('/api/control/stop', { method: 'POST' }, 15000);
+                if (!stopResp.res.ok || (stopResp.data.status !== 'success' && stopResp.data.status !== 'info')) {
+                    throw new Error(stopResp.data.msg || '停止旧任务失败');
+                }
+                const { res, data } = await fetchJsonWithTimeout('/api/control/start_live', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
-                });
-                const data = await res.json();
+                }, 20000);
                 if (!res.ok || (data.status !== 'success' && data.status !== 'info')) {
                     throw new Error(data.msg || '切换失败');
                 }
                 await syncStatus();
             } catch (e) {
+                const msg = String(e?.message || e || '');
+                if (msg.includes('aborted')) {
+                    await syncStatus();
+                    if (liveRunning) {
+                        logMessage('SYSTEM', '切换请求超时，但任务可能已在后台完成切换', 'warning');
+                        return;
+                    }
+                    logMessage('SYSTEM', '切换请求超时，请检查服务负载或数据源连通性', 'danger');
+                    return;
+                }
                 logMessage('SYSTEM', `切换监控标的失败: ${e}`, 'danger');
             }
         }
@@ -2270,14 +2391,23 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
         async function stopSimulation() {
             if (!liveEnabled) return;
             try {
-                const res = await fetch('/api/control/stop', { method: 'POST' });
-                const data = await res.json();
+                const { res, data } = await fetchJsonWithTimeout('/api/control/stop', { method: 'POST' }, 15000);
                 if (!res.ok || (data.status !== 'success' && data.status !== 'info')) {
                     throw new Error(data.msg || '停止失败');
                 }
                 logMessage('SYSTEM', data.msg || '已发送停止指令', 'warning');
             } catch (e) {
-                logMessage('SYSTEM', `停止实盘失败: ${e}`, 'danger');
+                const msg = String(e?.message || e || '');
+                if (msg.includes('aborted')) {
+                    await syncStatus();
+                    if (!liveRunning) {
+                        logMessage('SYSTEM', '停止请求超时，但任务已停止', 'warning');
+                    } else {
+                        logMessage('SYSTEM', '停止请求超时，请稍后重试', 'danger');
+                    }
+                } else {
+                    logMessage('SYSTEM', `停止实盘失败: ${e}`, 'danger');
+                }
             }
             liveRunning = false;
             renderLiveStatus();
@@ -2299,7 +2429,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             if (!text || !badge || !btn || !icon || !label) return;
             const compact = isCompactActionLayout();
             const btnMin = compact ? 'min-w-[108px]' : 'min-w-[128px]';
-            if (!liveEnabled) {
+            if (!liveEnabled && !liveRunning) {
                 text.className = 'text-slate-500';
                 text.innerText = '实盘已关闭';
                 badge.className = 'text-[10px] px-2 py-0.5 rounded bg-slate-700 text-slate-400';
@@ -2307,7 +2437,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 btn.disabled = true;
                 return;
             }
-            if (liveActionPending) {
+            if (liveActionPending && !liveRunning) {
                 text.className = 'text-trading-yellow animate-pulse';
                 text.innerText = '切换中';
                 badge.className = 'text-[10px] px-2 py-0.5 rounded bg-amber-700 text-white animate-pulse';
@@ -2633,6 +2763,13 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const codes = Object.keys(DIAG_STATE.liveFundPools || {}).sort((a, b) => String(a).localeCompare(String(b)));
             const keep = liveFundPoolSelectedCode || fundPoolSelectedCodeFallback();
             sel.innerHTML = '';
+            if (codes.length > 1) {
+                const optAll = document.createElement('option');
+                optAll.value = FUND_POOL_PORTFOLIO_KEY;
+                optAll.innerText = '组合总览';
+                sel.appendChild(optAll);
+                existed.add(FUND_POOL_PORTFOLIO_KEY);
+            }
             codes.forEach(code => {
                 existed.add(code);
                 const opt = document.createElement('option');
@@ -2658,19 +2795,247 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             }
         }
 
+        function mergeLiveAccountSnapshot(payload, data) {
+            const stockCode = String(payload?.stock_code || data?.stock_code || '').toUpperCase();
+            const key = stockCode || LIVE_ACCOUNT_GLOBAL_KEY;
+            if (!liveAccountSnapshotMap[key] || typeof liveAccountSnapshotMap[key] !== 'object') {
+                liveAccountSnapshotMap[key] = {};
+            }
+            const snap = liveAccountSnapshotMap[key];
+            if (data?.assets !== undefined && data?.assets !== null) {
+                const assetNum = Number(data.assets);
+                if (Number.isFinite(assetNum)) snap.assets = assetNum;
+            }
+            if (data?.cash !== undefined && data?.cash !== null) {
+                const cashNum = Number(data.cash);
+                if (Number.isFinite(cashNum)) snap.cash = cashNum;
+            }
+            if (data?.pos_ratio !== undefined && data?.pos_ratio !== null) {
+                const posNum = parseMetricNumber(data.pos_ratio);
+                if (Number.isFinite(posNum)) snap.pos_ratio_pct = posNum;
+            }
+            if (data?.day_start_assets !== undefined && data?.day_start_assets !== null) {
+                const baseNum = Number(data.day_start_assets);
+                if (Number.isFinite(baseNum) && baseNum > 0) snap.day_start_assets = baseNum;
+            }
+            if (data?.pnl_pct !== undefined && data?.pnl_pct !== null) {
+                const pnlPctNum = Number(data.pnl_pct);
+                if (Number.isFinite(pnlPctNum)) snap.pnl_pct = pnlPctNum;
+            } else if (data?.pnl !== undefined && data?.pnl !== null) {
+                const pnlPctNum = parseMetricNumber(data.pnl);
+                if (Number.isFinite(pnlPctNum)) snap.pnl_pct = pnlPctNum;
+            }
+            return key;
+        }
+
+        function aggregateLiveAccountSnapshot() {
+            const keys = Object.keys(liveAccountSnapshotMap || {});
+            const codeKeys = keys.filter(k => k !== LIVE_ACCOUNT_GLOBAL_KEY);
+            if (!codeKeys.length) {
+                const g = liveAccountSnapshotMap[LIVE_ACCOUNT_GLOBAL_KEY];
+                if (!g || !Number.isFinite(Number(g.assets))) return null;
+                const assets = Number(g.assets);
+                const cash = Number.isFinite(Number(g.cash)) ? Number(g.cash) : null;
+                let posRatioPct = Number.isFinite(Number(g.pos_ratio_pct)) ? Number(g.pos_ratio_pct) : null;
+                let pnlPct = Number.isFinite(Number(g.pnl_pct)) ? Number(g.pnl_pct) : null;
+                const dayStartAssets = Number(g.day_start_assets);
+                if (!Number.isFinite(posRatioPct) && Number.isFinite(cash) && assets > 0) {
+                    posRatioPct = Math.max(0, Math.min(100, (1 - (cash / assets)) * 100));
+                }
+                if (!Number.isFinite(pnlPct) && Number.isFinite(dayStartAssets) && dayStartAssets > 0) {
+                    pnlPct = ((assets - dayStartAssets) / dayStartAssets) * 100;
+                }
+                return { assets, cash, posRatioPct, pnlPct };
+            }
+            let sumAssets = 0;
+            let sumCash = 0;
+            let sumDayStartAssets = 0;
+            let hasAssets = false;
+            let hasCash = false;
+            let hasDayStart = false;
+            codeKeys.forEach(code => {
+                const s = liveAccountSnapshotMap[code];
+                const a = Number(s?.assets);
+                if (Number.isFinite(a)) {
+                    sumAssets += a;
+                    hasAssets = true;
+                }
+                const c = Number(s?.cash);
+                if (Number.isFinite(c)) {
+                    sumCash += c;
+                    hasCash = true;
+                }
+                const b = Number(s?.day_start_assets);
+                if (Number.isFinite(b) && b > 0) {
+                    sumDayStartAssets += b;
+                    hasDayStart = true;
+                }
+            });
+            if (!hasAssets) return null;
+            const posRatioPct = hasCash && sumAssets > 0 ? Math.max(0, Math.min(100, (1 - (sumCash / sumAssets)) * 100)) : null;
+            const pnlPct = hasDayStart && sumDayStartAssets > 0 ? ((sumAssets - sumDayStartAssets) / sumDayStartAssets) * 100 : null;
+            return {
+                assets: sumAssets,
+                cash: hasCash ? sumCash : null,
+                posRatioPct,
+                pnlPct
+            };
+        }
+
+        function refreshTopAccountMetricsFromSnapshots(fallback = {}) {
+            const agg = aggregateLiveAccountSnapshot();
+            const fallbackAssets = Number(fallback.assets);
+            const fallbackCash = Number(fallback.cash);
+            const fallbackPos = Number(fallback.posRatioPct);
+            const fallbackPnlPct = Number(fallback.pnlPct);
+            const assets = agg && Number.isFinite(Number(agg.assets))
+                ? Number(agg.assets)
+                : (Number.isFinite(fallbackAssets) ? fallbackAssets : null);
+            const cash = agg && Number.isFinite(Number(agg.cash))
+                ? Number(agg.cash)
+                : (Number.isFinite(fallbackCash) ? fallbackCash : null);
+            const posRatioPct = agg && Number.isFinite(Number(agg.posRatioPct))
+                ? Number(agg.posRatioPct)
+                : (Number.isFinite(fallbackPos) ? fallbackPos : null);
+            const pnlPct = agg && Number.isFinite(Number(agg.pnlPct))
+                ? Number(agg.pnlPct)
+                : (Number.isFinite(fallbackPnlPct) ? fallbackPnlPct : null);
+            if (Number.isFinite(assets)) {
+                setMetricText('total-assets', `¥ ${assets.toLocaleString()}`, assets);
+            }
+            if (Number.isFinite(cash)) {
+                setMetricText('revenue-cash', cash.toLocaleString(), cash);
+            }
+            if (Number.isFinite(pnlPct)) {
+                setMetricText('daily-pnl', `${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%`, pnlPct);
+                setDailyPnlStyle(pnlPct);
+            }
+            if (Number.isFinite(posRatioPct)) {
+                setMetricText('position-ratio', `${posRatioPct.toFixed(2)}%`, posRatioPct);
+                const availVal = Math.max(0, Math.min(100, 100 - posRatioPct));
+                setMetricText('personnel-available-pos', `${availVal.toFixed(1)}%`, availVal);
+            }
+            updateRevenueCashRatioBar(cash, assets);
+        }
+
+        function buildPortfolioFundPoolSnapshot() {
+            const poolMap = (DIAG_STATE.liveFundPools && typeof DIAG_STATE.liveFundPools === 'object') ? DIAG_STATE.liveFundPools : {};
+            const codes = Object.keys(poolMap);
+            if (!codes.length) return null;
+            const out = {
+                stock_code: FUND_POOL_PORTFOLIO_KEY,
+                cash: 0,
+                holdings_value: 0,
+                fund_value: 0,
+                realized_pnl: 0,
+                initial_capital: 0,
+                positions: [],
+                trade_details: [],
+                updated_at: ''
+            };
+            let latestTs = '';
+            codes.forEach(code => {
+                const s = poolMap[code];
+                if (!s || typeof s !== 'object') return;
+                out.cash += Number(s.cash || 0);
+                out.holdings_value += Number(s.holdings_value || 0);
+                out.fund_value += Number(s.fund_value || 0);
+                out.realized_pnl += Number(s.realized_pnl || 0);
+                out.initial_capital += Number(s.initial_capital || 0);
+                if (Array.isArray(s.positions)) {
+                    out.positions.push(...s.positions.map(row => Object.assign({}, row)));
+                }
+                if (Array.isArray(s.trade_details)) {
+                    out.trade_details.push(...s.trade_details.map(row => Object.assign({}, row)));
+                }
+                const ts = String(s.updated_at || '');
+                if (ts && (!latestTs || ts > latestTs)) latestTs = ts;
+            });
+            out.updated_at = latestTs;
+            out.trade_details.sort((a, b) => String(b?.dt || '').localeCompare(String(a?.dt || '')));
+            if (out.trade_details.length > 3000) out.trade_details = out.trade_details.slice(0, 3000);
+            return out;
+        }
+
+        function buildPortfolioCurve() {
+            const codes = Object.keys(liveFundCurveMap || {});
+            if (!codes.length) return [];
+            const codeArrMap = {};
+            const tsSet = new Set();
+            codes.forEach(code => {
+                const arr = Array.isArray(liveFundCurveMap[code]) ? liveFundCurveMap[code] : [];
+                if (!arr.length) return;
+                codeArrMap[code] = arr.slice().sort((a, b) => String(a?.ts || '').localeCompare(String(b?.ts || '')));
+                codeArrMap[code].forEach(p => {
+                    const ts = String(p?.ts || '');
+                    if (ts) tsSet.add(ts);
+                });
+            });
+            const tsList = Array.from(tsSet).sort((a, b) => String(a).localeCompare(String(b)));
+            if (!tsList.length) return [];
+            const idxMap = {};
+            const lastMap = {};
+            Object.keys(codeArrMap).forEach(code => {
+                idxMap[code] = 0;
+                lastMap[code] = null;
+            });
+            const out = [];
+            tsList.forEach(ts => {
+                let sumFund = 0;
+                let sumHoldings = 0;
+                let sumCash = 0;
+                let valid = false;
+                Object.keys(codeArrMap).forEach(code => {
+                    const arr = codeArrMap[code];
+                    let idx = Number(idxMap[code] || 0);
+                    while (idx < arr.length && String(arr[idx]?.ts || '') <= ts) {
+                        lastMap[code] = arr[idx];
+                        idx += 1;
+                    }
+                    idxMap[code] = idx;
+                    const last = lastMap[code];
+                    if (!last) return;
+                    sumFund += Number(last.fund_value || 0);
+                    sumHoldings += Number(last.holdings_value || 0);
+                    sumCash += Number(last.cash || 0);
+                    valid = true;
+                });
+                if (!valid) return;
+                out.push({ ts, fund_value: sumFund, holdings_value: sumHoldings, cash: sumCash });
+            });
+            if (out.length > 240) return out.slice(out.length - 240);
+            return out;
+        }
+
         function appendFundCurvePoint(stockCode, snap) {
             const code = String(stockCode || '').toUpperCase();
             if (!code || !snap || typeof snap !== 'object') return;
-            const assets = Number(snap.fund_value || 0);
-            if (!Number.isFinite(assets) || assets <= 0) return;
+            const fundValue = Number(snap.fund_value || 0);
+            const holdingsValue = Number(snap.holdings_value || 0);
+            const cashValue = Number(snap.cash || 0);
+            if (!Number.isFinite(fundValue) || fundValue <= 0) return;
             const ts = String(snap.updated_at || new Date().toISOString());
             if (!liveFundCurveMap[code]) liveFundCurveMap[code] = [];
             const arr = liveFundCurveMap[code];
             const last = arr.length ? arr[arr.length - 1] : null;
-            if (!last || String(last.ts) !== ts || Math.abs(Number(last.value || 0) - assets) > 0.0001) {
-                arr.push({ ts, value: assets });
+            if (
+                !last
+                || String(last.ts) !== ts
+                || Math.abs(Number(last.fund_value || 0) - fundValue) > 0.0001
+                || Math.abs(Number(last.holdings_value || 0) - holdingsValue) > 0.0001
+                || Math.abs(Number(last.cash || 0) - cashValue) > 0.0001
+            ) {
+                arr.push({ ts, fund_value: fundValue, holdings_value: holdingsValue, cash: cashValue });
             }
             if (arr.length > 240) arr.splice(0, arr.length - 240);
+        }
+
+        function onFundPoolCurveMetricChange(metric) {
+            const next = String(metric || 'fund_value').trim();
+            liveFundCurveMetric = ['fund_value', 'holdings_value', 'cash'].includes(next) ? next : 'fund_value';
+            const selected = String(liveFundPoolSelectedCode || fundPoolSelectedCodeFallback() || '').toUpperCase();
+            const snap = selected === FUND_POOL_PORTFOLIO_KEY ? buildPortfolioFundPoolSnapshot() : (selected ? DIAG_STATE.liveFundPools?.[selected] : null);
+            renderFundPoolCurve(selected, snap);
         }
 
         function renderFundPoolCurve(stockCode, snap) {
@@ -2682,30 +3047,35 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const cumRet = document.getElementById('fund-pool-cum-return');
             const maxDdEl = document.getElementById('fund-pool-max-dd');
             const rangeEl = document.getElementById('fund-pool-curve-range');
-            if (!line || !baseline || !dot || !meta || !ret || !cumRet || !maxDdEl || !rangeEl) return;
+            const legendEl = document.getElementById('fund-pool-curve-legend');
+            if (!line || !baseline || !dot || !meta || !ret || !cumRet || !maxDdEl || !rangeEl || !legendEl) return;
             const code = String(stockCode || '').toUpperCase();
-            const curve = Array.isArray(liveFundCurveMap[code]) ? liveFundCurveMap[code] : [];
+            const curve = code === FUND_POOL_PORTFOLIO_KEY ? buildPortfolioCurve() : (Array.isArray(liveFundCurveMap[code]) ? liveFundCurveMap[code] : []);
+            const metric = ['fund_value', 'holdings_value', 'cash'].includes(String(liveFundCurveMetric || '')) ? String(liveFundCurveMetric) : 'fund_value';
+            const metricLabel = metric === 'holdings_value' ? '持仓市值' : (metric === 'cash' ? '现金' : '总资产');
             if (!curve.length) {
                 line.setAttribute('points', '');
                 baseline.setAttribute('points', '');
                 dot.setAttribute('opacity', '0');
                 meta.innerText = '暂无数据';
-                ret.innerText = '区间收益 --';
+                ret.innerText = '区间变化 --';
                 ret.className = 'text-[10px] text-slate-300';
-                cumRet.innerText = '累计收益 --';
+                cumRet.innerText = '累计变化 --';
                 cumRet.className = 'text-slate-300';
                 maxDdEl.innerText = '最大回撤 --';
                 maxDdEl.className = 'text-slate-300 text-right';
                 rangeEl.innerText = '范围 --';
+                legendEl.innerText = `红线=${metricLabel}｜灰线=基准线`;
                 return;
             }
             const width = 320;
-            const height = 72;
-            const values = curve.map(x => Number(x.value || 0));
+            const height = 216;
+            const values = curve.map(x => Number(x?.[metric] || 0));
             const latest = Number(values[values.length - 1] || 0);
-            const intervalBase = Number(values[0] || 0);
+            const intervalBase = Number(values[0] || 0) || 0;
             const initCapital = Number(snap?.initial_capital || intervalBase || latest || 0);
-            const baselineValues = curve.map(() => initCapital);
+            const baselineSeed = metric === 'fund_value' ? initCapital : intervalBase;
+            const baselineValues = curve.map(() => baselineSeed);
             let minV = Math.min(...values, ...baselineValues);
             let maxV = Math.max(...values, ...baselineValues);
             if (Math.abs(maxV - minV) < 0.0001) {
@@ -2720,22 +3090,23 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             line.setAttribute('points', buildPoints(values));
             baseline.setAttribute('points', buildPoints(baselineValues));
             const lastX = curve.length <= 1 ? 0 : 320;
-            const lastY = 72 - ((latest - minV) / (maxV - minV)) * (72 - 4) - 2;
+            const lastY = height - ((latest - minV) / (maxV - minV)) * (height - 4) - 2;
             dot.setAttribute('cx', String(lastX));
             dot.setAttribute('cy', String(lastY));
             dot.setAttribute('opacity', '1');
-            meta.innerText = `${curve.length}点 | 最新 ${fmtCurrency(latest)}`;
+            meta.innerText = `${curve.length}点 | ${metricLabel} ${fmtCurrency(latest)}`;
             rangeEl.innerText = `范围 ${fmtCurrency(minV)} ~ ${fmtCurrency(maxV)}`;
-            const latestV = Number(snap?.fund_value || latest || 0);
-            const initV = Number(initCapital || 0);
+            const latestV = Number(values[values.length - 1] || 0);
+            const initV = Number(baselineSeed || 0);
             const isUp = latestV >= initV;
-            line.setAttribute('stroke', isUp ? '#34d399' : '#fb7185');
+            line.setAttribute('stroke', isUp ? '#f87171' : '#34d399');
+            dot.setAttribute('fill', isUp ? '#f87171' : '#34d399');
             const intervalRetPct = intervalBase > 0 ? ((latest - intervalBase) / intervalBase) * 100 : 0;
-            ret.innerText = `区间收益 ${intervalRetPct >= 0 ? '+' : ''}${intervalRetPct.toFixed(2)}%`;
-            ret.className = intervalRetPct > 0 ? 'text-[10px] text-emerald-300' : (intervalRetPct < 0 ? 'text-[10px] text-rose-300' : 'text-[10px] text-slate-300');
+            ret.innerText = `区间变化 ${intervalRetPct >= 0 ? '+' : ''}${intervalRetPct.toFixed(2)}%`;
+            ret.className = intervalRetPct > 0 ? 'text-[10px] text-rose-300' : (intervalRetPct < 0 ? 'text-[10px] text-emerald-300' : 'text-[10px] text-slate-300');
             const cumulativeRetPct = initV > 0 ? ((latestV - initV) / initV) * 100 : 0;
-            cumRet.innerText = `累计收益 ${cumulativeRetPct >= 0 ? '+' : ''}${cumulativeRetPct.toFixed(2)}%`;
-            cumRet.className = cumulativeRetPct > 0 ? 'text-emerald-300' : (cumulativeRetPct < 0 ? 'text-rose-300' : 'text-slate-300');
+            cumRet.innerText = `累计变化 ${cumulativeRetPct >= 0 ? '+' : ''}${cumulativeRetPct.toFixed(2)}%`;
+            cumRet.className = cumulativeRetPct > 0 ? 'text-rose-300' : (cumulativeRetPct < 0 ? 'text-emerald-300' : 'text-slate-300');
             let peak = Number(values[0] || 0);
             let maxDd = 0;
             for (const v of values) {
@@ -2747,6 +3118,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             }
             maxDdEl.innerText = `最大回撤 ${(maxDd * 100).toFixed(2)}%`;
             maxDdEl.className = maxDd >= 0.03 ? 'text-rose-300 text-right' : (maxDd >= 0.02 ? 'text-amber-300 text-right' : 'text-emerald-300 text-right');
+            legendEl.innerText = metric === 'fund_value' ? '红线=总资产｜灰线=初始资金基准线' : `红线=${metricLabel}｜灰线=区间起点基准线`;
         }
 
         function renderFundPoolPositions(snap) {
@@ -2794,7 +3166,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 const price = Number(r?.price || 0);
                 const fee = Number(r?.cost || 0);
                 const pnl = Number(r?.pnl || 0);
-                const pnlCls = pnl > 0 ? 'text-emerald-300' : (pnl < 0 ? 'text-rose-300' : 'text-slate-300');
+                const pnlCls = pnl > 0 ? 'text-rose-300' : (pnl < 0 ? 'text-emerald-300' : 'text-slate-300');
                 const dirCls = d === 'BUY' ? 'text-cyan-300' : (d === 'SELL' ? 'text-amber-300' : 'text-slate-300');
                 return `<tr class="border-t border-slate-800"><td class="py-0.5">${t}</td><td class="py-0.5">${sid}</td><td class="py-0.5 ${dirCls}">${d}</td><td class="py-0.5 text-right">${qty}</td><td class="py-0.5 text-right">${price.toFixed(3)}</td><td class="py-0.5 text-right">${fee.toFixed(2)}</td><td class="py-0.5 text-right ${pnlCls}">${pnl.toFixed(2)}</td></tr>`;
             }).join('');
@@ -2806,7 +3178,9 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const assetEl = document.getElementById('fund-pool-assets');
             const pnlEl = document.getElementById('fund-pool-realized');
             const capInput = document.getElementById('fund-pool-capital-input');
+            const metricSel = document.getElementById('fund-pool-curve-metric');
             if (!cashEl || !holdEl || !assetEl || !pnlEl) return;
+            if (metricSel && metricSel.value !== liveFundCurveMetric) metricSel.value = liveFundCurveMetric;
             if (!snap || typeof snap !== 'object') {
                 cashEl.innerText = '--';
                 holdEl.innerText = '--';
@@ -2823,10 +3197,10 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             assetEl.innerText = fmtCurrency(snap.fund_value);
             const realized = Number(snap.realized_pnl || 0);
             pnlEl.innerText = `${realized >= 0 ? '+' : ''}${realized.toFixed(2)}`;
-            pnlEl.className = realized > 0 ? 'font-mono text-emerald-300' : (realized < 0 ? 'font-mono text-rose-300' : 'font-mono text-slate-200');
+            pnlEl.className = realized > 0 ? 'font-mono text-rose-300' : (realized < 0 ? 'font-mono text-emerald-300' : 'font-mono text-slate-200');
             const initCapital = Number(snap.initial_capital || 0);
-            if (capInput && initCapital > 0 && !String(capInput.value || '').trim()) {
-                capInput.value = String(Math.round(initCapital));
+            if (capInput) {
+                capInput.placeholder = initCapital > 0 ? String(Math.round(initCapital)) : '初始资金';
             }
             liveFundTradeRows = Array.isArray(snap.trade_details) ? snap.trade_details : [];
             renderFundPoolPositions(snap);
@@ -2852,6 +3226,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const selected = liveFundPoolSelectedCode || fundPoolSelectedCodeFallback();
             if (selected && selected === stockCode) {
                 renderFundPoolPanel(snap, stockCode);
+            } else if (selected === FUND_POOL_PORTFOLIO_KEY) {
+                renderFundPoolPanel(buildPortfolioFundPoolSnapshot(), FUND_POOL_PORTFOLIO_KEY);
             } else if (!liveFundPoolSelectedCode && stockCode) {
                 liveFundPoolSelectedCode = stockCode;
                 renderFundPoolPanel(snap, stockCode);
@@ -2865,6 +3241,11 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 return;
             }
             liveFundPoolSelectedCode = selected;
+            if (selected === FUND_POOL_PORTFOLIO_KEY) {
+                renderFundPoolPanel(buildPortfolioFundPoolSnapshot(), FUND_POOL_PORTFOLIO_KEY);
+                liveFundLastFetchAt = Date.now();
+                return;
+            }
             try {
                 const res = await fetch(`/api/live/fund_pool?stock_code=${encodeURIComponent(selected)}&include_transactions=true&tx_limit=1000`);
                 const data = await res.json();
@@ -2880,6 +3261,10 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
 
         function onFundPoolStockChange(code) {
             liveFundPoolSelectedCode = String(code || '').toUpperCase();
+            if (liveFundPoolSelectedCode === FUND_POOL_PORTFOLIO_KEY) {
+                renderFundPoolPanel(buildPortfolioFundPoolSnapshot(), FUND_POOL_PORTFOLIO_KEY);
+                return;
+            }
             const snap = DIAG_STATE.liveFundPools?.[liveFundPoolSelectedCode];
             if (snap) {
                 renderFundPoolPanel(snap, liveFundPoolSelectedCode);
@@ -2894,15 +3279,13 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 logMessage('SYSTEM', '请先选择资金池标的', 'warning');
                 return;
             }
-            if (!window.confirm(`确认重置 ${selected} 的虚拟资金池吗？`)) return;
             const panelCapInput = document.getElementById('fund-pool-capital-input');
-            const panelCapVal = Number(panelCapInput?.value || 0);
-            const btCapInput = document.getElementById('bt-capital-input');
-            const btCapVal = Number(btCapInput?.value || 0);
-            const payload = { stock_code: selected };
-            const pickedCapital = (Number.isFinite(panelCapVal) && panelCapVal > 0) ? panelCapVal : ((Number.isFinite(btCapVal) && btCapVal > 0) ? btCapVal : 0);
-            if (pickedCapital > 0) payload.initial_capital = pickedCapital;
-            try {
+            const panelRaw = String(panelCapInput?.value || '').trim();
+            const panelCapVal = Number(panelRaw || 0);
+            const customCap = (panelRaw && Number.isFinite(panelCapVal) && panelCapVal > 0) ? panelCapVal : null;
+            const requestReset = async (code) => {
+                const payload = { stock_code: code };
+                if (customCap !== null) payload.initial_capital = customCap;
                 const res = await fetch('/api/live/fund_pool/reset', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2912,6 +3295,36 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 if (!res.ok || data.status !== 'success') {
                     throw new Error(data.msg || '重置失败');
                 }
+                return data;
+            };
+            if (selected === FUND_POOL_PORTFOLIO_KEY) {
+                const codes = Object.keys(DIAG_STATE.liveFundPools || {})
+                    .map(x => String(x || '').toUpperCase())
+                    .filter(x => x && x !== FUND_POOL_PORTFOLIO_KEY);
+                if (!codes.length) {
+                    logMessage('SYSTEM', '组合内暂无可重置标的', 'warning');
+                    return;
+                }
+                if (!window.confirm(`确认重置组合内全部 ${codes.length} 只标的的虚拟资金池吗？`)) return;
+                const failed = [];
+                for (const code of codes) {
+                    try {
+                        await requestReset(code);
+                    } catch (e) {
+                        failed.push(`${code}: ${String(e?.message || e || '重置失败')}`);
+                    }
+                }
+                if (failed.length) {
+                    logMessage('SYSTEM', `组合批量重置完成，失败 ${failed.length} 只：${failed.join(' | ')}`, 'danger');
+                } else {
+                    logMessage('SYSTEM', `组合批量重置成功：共 ${codes.length} 只`, 'warning');
+                }
+                await refreshFundPoolPanel(FUND_POOL_PORTFOLIO_KEY);
+                return;
+            }
+            if (!window.confirm(`确认重置 ${selected} 的虚拟资金池吗？`)) return;
+            try {
+                await requestReset(selected);
                 logMessage('SYSTEM', `资金池已重置: ${selected}`, 'warning');
                 await refreshFundPoolPanel(selected);
             } catch (e) {
@@ -2988,14 +3401,49 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             setMetricText('confidence-winrate-val', `胜率 ${Number(winrate).toFixed(1)}%`, Number(winrate));
         }
 
+        function toRatePercent(value) {
+            const num = Number(value);
+            if (!Number.isFinite(num)) return null;
+            const pct = num <= 1 ? num * 100 : num;
+            return Math.max(0, Math.min(100, pct));
+        }
+
+        function computeWeightedWinRate(rows, winRateKey, weightKey) {
+            if (!Array.isArray(rows) || !rows.length) return null;
+            let weightedSum = 0;
+            let totalWeight = 0;
+            let simpleSum = 0;
+            let simpleCount = 0;
+            rows.forEach(row => {
+                const wrPct = toRatePercent(row?.[winRateKey]);
+                if (wrPct === null) return;
+                const weight = Number(row?.[weightKey]);
+                if (Number.isFinite(weight) && weight > 0) {
+                    weightedSum += wrPct * weight;
+                    totalWeight += weight;
+                }
+                simpleSum += wrPct;
+                simpleCount += 1;
+            });
+            if (totalWeight > 0) return weightedSum / totalWeight;
+            if (simpleCount > 0) return simpleSum / simpleCount;
+            return null;
+        }
+
         function updateConfidenceScore() {
             const consistency = Math.max(0, Math.min(100, Number(DIAG_STATE.signalConsistency || 0)));
             const riskTotal = DIAG_STATE.riskApproved + DIAG_STATE.riskRejected;
             const riskPassRate = riskTotal > 0 ? (DIAG_STATE.riskApproved / riskTotal) * 100 : 50;
-            const wins = DIAG_STATE.recentPnls.filter(v => v > 0).length;
-            const losses = DIAG_STATE.recentPnls.filter(v => v <= 0).length;
-            const tradeTotal = wins + losses;
-            const recentWinRate = tradeTotal > 0 ? (wins / tradeTotal) * 100 : 50;
+            const reportWinRate = Number.isFinite(Number(DIAG_STATE.backtestReportWinRate)) ? Number(DIAG_STATE.backtestReportWinRate) : null;
+            const summaryWinRate = Number.isFinite(Number(DIAG_STATE.backtestSummaryWinRate)) ? Number(DIAG_STATE.backtestSummaryWinRate) : null;
+            let recentWinRate = reportWinRate;
+            if (recentWinRate === null) recentWinRate = summaryWinRate;
+            if (recentWinRate === null) {
+                const wins = DIAG_STATE.recentPnls.filter(v => v > 0).length;
+                const losses = DIAG_STATE.recentPnls.filter(v => v <= 0).length;
+                const tradeTotal = wins + losses;
+                recentWinRate = tradeTotal > 0 ? (wins / tradeTotal) * 100 : 50;
+            }
             const score = consistency * 0.40 + riskPassRate * 0.35 + recentWinRate * 0.25;
 
             const valEl = document.getElementById('confidence-val');
@@ -3018,6 +3466,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             if (liveStreamPanel) liveStreamPanel.classList.remove('hidden');
             if (liveStatusWrap) liveStatusWrap.classList.toggle('hidden', !liveEnabled);
             if (liveToggleBtn) liveToggleBtn.classList.toggle('hidden', !liveEnabled);
+            syncRuntimeParamsUI();
             updateWebhookRetryEntryState();
             syncActionLayout();
             applyAllRightPanelStates();
@@ -3191,7 +3640,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const backtestBtn = document.getElementById('backtest-trigger-btn');
             if (!cluster || !inline || !moreWrap) return;
             const w = window.innerWidth || 1920;
-            actionLayoutMode = w < 1650 ? 'compact' : 'expanded';
+            actionLayoutMode = liveEnabled ? 'expanded' : (w < 1650 ? 'compact' : 'expanded');
             if (isCompactActionLayout()) {
                 cluster.className = 'flex items-center gap-2';
                 inline.classList.add('hidden');
@@ -3199,7 +3648,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 if (backtestBtn) backtestBtn.classList.remove('min-w-[128px]');
                 if (backtestBtn) backtestBtn.classList.add('min-w-[108px]');
             } else {
-                cluster.className = 'flex items-center gap-2 flex-wrap justify-end';
+                cluster.className = 'flex items-center gap-2 flex-nowrap justify-end';
                 inline.classList.remove('hidden');
                 moreWrap.classList.add('hidden');
                 closeActionMoreMenu();
@@ -3207,6 +3656,24 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 if (backtestBtn) backtestBtn.classList.add('min-w-[128px]');
             }
             updateWebhookRetryEntryState();
+        }
+
+        function syncRuntimeParamsUI() {
+            const btnLabel = document.getElementById('runtime-params-btn-label');
+            const title = document.getElementById('runtime-params-title');
+            const liveModeRow = document.getElementById('runtime-live-allocation-mode-row');
+            const liveWeightsRow = document.getElementById('runtime-live-allocation-weights-row');
+            const drawer = document.getElementById('live-params-drawer');
+            if (btnLabel) btnLabel.innerText = liveEnabled ? '运行参数' : '回测参数';
+            if (title) title.innerText = liveEnabled ? '运行参数（实盘）' : '运行参数（回测）';
+            if (liveModeRow) liveModeRow.classList.toggle('hidden', !liveEnabled);
+            if (liveWeightsRow) liveWeightsRow.classList.toggle('hidden', !liveEnabled);
+            if (!liveEnabled && drawer && !drawer.classList.contains('pointer-events-none')) {
+                const modeSel = document.getElementById('live-allocation-mode');
+                const weightsInput = document.getElementById('live-allocation-weights');
+                if (modeSel) modeSel.value = 'equal';
+                if (weightsInput) weightsInput.value = '';
+            }
         }
 
         function updateWebhookRetryEntryState() {
@@ -3382,13 +3849,29 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
         let configDraft = {};
         let webhookFailedEvents = [];
         let webhookFailedSelectedIds = new Set();
+        const WEBHOOK_CATEGORY_OPTIONS_DEFAULT = [
+            { value: 'A', label: 'A 系统生命周期', desc: '启动/停止/切换/配置生效' },
+            { value: 'B', label: 'B 系统异常', desc: '异常/失败/退出' },
+            { value: 'C', label: 'C 交易决策', desc: '策略信号（zhongshu）' },
+            { value: 'D', label: 'D 风控结果', desc: '风控结果（menxia）' },
+            { value: 'E', label: 'E 成交执行', desc: '成交回报（trade_exec）' },
+            { value: 'F', label: 'F 账户资金', desc: 'account/fund_pool' },
+            { value: 'G', label: 'G 监控告警', desc: 'live_alert' },
+            { value: 'H', label: 'H 健康快照', desc: 'live_monitor_snapshot/live_kline_freshness' },
+            { value: 'I', label: 'I 持仓手数', desc: 'live_position_lots' },
+            { value: 'J', label: 'J 回测进度', desc: 'backtest_progress/backtest_flow' },
+            { value: 'K', label: 'K 回测结果', desc: 'backtest_result/backtest_failed/backtest_strategy_report' },
+            { value: 'L', label: 'L 数据链路调试', desc: '拉取K线/rt_min/stk_mins' }
+        ];
+        let webhookCategoryOptions = WEBHOOK_CATEGORY_OPTIONS_DEFAULT.slice();
+
         const BIZ_SECTIONS = [
             {
                 title: '系统总控',
                 subtitle: '运行模式与全局开关',
                 fields: [
-                    { path: 'system.mode', label: '运行模式', type: 'select', options: [{ value: 'backtest', label: '回测模式' }, { value: 'live', label: '实盘模式' }] },
-                    { path: 'system.enable_live', label: '启用实盘', type: 'boolean' },
+                    { path: 'system.mode', label: '运行模式', type: 'select', options: [{ value: 'backtest', label: '回测模式' }, { value: 'live', label: '实盘模式' }], desc: '用于切换系统主流程（回测/实盘）' },
+                    { path: 'system.enable_live', label: '启用实盘', type: 'boolean', desc: '实盘总开关；需与“运行模式=实盘”同时满足才会生效' },
                     { path: 'system.initial_capital', label: '系统初始资金', type: 'number', unit: '元', min: 10000, max: 100000000, step: 10000, slider: true },
                     { path: 'system.log_level', label: '日志级别', type: 'select', options: [{ value: 'DEBUG', label: '调试' }, { value: 'INFO', label: '信息' }, { value: 'WARNING', label: '警告' }, { value: 'ERROR', label: '错误' }] }
                 ]
@@ -3485,7 +3968,9 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     { path: 'webhook_notification.failed_events_file', label: '失败队列文件', type: 'text' },
                     { path: 'webhook_notification.failed_retry_interval_seconds', label: '补偿重试间隔秒', type: 'number', min: 1, max: 3600, step: 1, slider: true },
                     { path: 'webhook_notification.failed_retry_batch_size', label: '每轮补偿重试条数', type: 'number', min: 1, max: 500, step: 1, slider: true },
-                    { path: 'webhook_notification.failed_max_retry', label: '单条最大补偿重试次数', type: 'number', min: 1, max: 200, step: 1, slider: true }
+                    { path: 'webhook_notification.failed_max_retry', label: '单条最大补偿重试次数', type: 'number', min: 1, max: 200, step: 1, slider: true },
+                    { path: 'webhook_notification.category_filter_mode', label: '分类过滤模式', type: 'select', options: [{ value: 'off', label: '关闭过滤（全量）' }, { value: 'whitelist', label: '白名单（仅推送勾选）' }, { value: 'blacklist', label: '黑名单（不推送勾选）' }] },
+                    { path: 'webhook_notification.category_codes', label: '分类勾选（A~L）', type: 'checkbox_group', options: WEBHOOK_CATEGORY_OPTIONS_DEFAULT, desc: '白名单模式=仅推送勾选项；黑名单模式=屏蔽勾选项' }
                 ]
             },
             {
@@ -3749,6 +4234,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const { row, holder } = createFieldRow(field.label);
             const value = getByPath(cfg, field.path, field.default);
             if (field.type === 'boolean') {
+                const box = document.createElement('div');
+                box.className = 'space-y-1';
                 const wrap = document.createElement('label');
                 wrap.className = 'inline-flex items-center gap-2 text-xs text-slate-200';
                 const input = document.createElement('input');
@@ -3763,7 +4250,14 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 input.addEventListener('change', () => txt.innerText = input.checked ? '开启' : '关闭');
                 wrap.appendChild(input);
                 wrap.appendChild(txt);
-                holder.appendChild(wrap);
+                box.appendChild(wrap);
+                if (field.desc) {
+                    const desc = document.createElement('div');
+                    desc.className = 'text-[10px] text-slate-500';
+                    desc.innerText = field.desc;
+                    box.appendChild(desc);
+                }
+                holder.appendChild(box);
             } else if (field.type === 'select') {
                 const sel = document.createElement('select');
                 sel.className = 'w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500';
@@ -3792,6 +4286,52 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     hint.innerText = field.hint;
                     holder.appendChild(hint);
                 }
+            } else if (field.type === 'checkbox_group') {
+                const box = document.createElement('div');
+                box.className = 'space-y-2';
+                const selected = new Set(Array.isArray(value) ? value.map(x => String(x).trim().toUpperCase()) : []);
+                const opts = field.path === 'webhook_notification.category_codes'
+                    ? (Array.isArray(webhookCategoryOptions) && webhookCategoryOptions.length ? webhookCategoryOptions : (field.options || []))
+                    : (field.options || []);
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-2 gap-1';
+                opts.forEach(opt => {
+                    const v = String(opt?.value || '').trim().toUpperCase();
+                    if (!v) return;
+                    const item = document.createElement('label');
+                    item.className = 'flex items-start gap-2 text-xs text-slate-200 bg-slate-900 border border-slate-700 rounded px-2 py-1';
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.className = 'accent-purple-500 mt-0.5';
+                    input.checked = selected.has(v);
+                    input.dataset.path = field.path;
+                    input.dataset.kind = 'checkitem';
+                    input.dataset.value = v;
+                    const txtWrap = document.createElement('span');
+                    txtWrap.className = 'leading-tight';
+                    const ttl = document.createElement('div');
+                    ttl.className = 'text-slate-100';
+                    ttl.innerText = String(opt?.label || v);
+                    txtWrap.appendChild(ttl);
+                    const dsc = String(opt?.desc || '').trim();
+                    if (dsc) {
+                        const sub = document.createElement('div');
+                        sub.className = 'text-[10px] text-slate-500';
+                        sub.innerText = dsc;
+                        txtWrap.appendChild(sub);
+                    }
+                    item.appendChild(input);
+                    item.appendChild(txtWrap);
+                    grid.appendChild(item);
+                });
+                box.appendChild(grid);
+                if (field.desc) {
+                    const desc = document.createElement('div');
+                    desc.className = 'text-[10px] text-slate-500';
+                    desc.innerText = field.desc;
+                    box.appendChild(desc);
+                }
+                holder.appendChild(box);
             } else {
                 const wrap = document.createElement('div');
                 wrap.className = 'space-y-1';
@@ -3950,6 +4490,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
 
         function collectConfigFromForm() {
             const out = JSON.parse(JSON.stringify(configDraft || {}));
+            const checklistMap = {};
             document.querySelectorAll('#config-form-container [data-path]').forEach(el => {
                 const path = el.dataset.path;
                 const kind = el.dataset.kind;
@@ -3976,7 +4517,16 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     const lines = String(el.value || '').split('\n').map(v => v.trim()).filter(v => v.length > 0);
                     const arr = lines.map(v => itemType === 'number' ? (Number.isFinite(Number(v)) ? Number(v) : 0) : v);
                     setByPath(out, path, arr);
+                } else if (kind === 'checkitem') {
+                    const v = String(el.dataset.value || '').trim().toUpperCase();
+                    if (!checklistMap[path]) checklistMap[path] = [];
+                    if (!v) return;
+                    if (el.checked) checklistMap[path].push(v);
                 }
+            });
+            Object.keys(checklistMap).forEach(path => {
+                const arr = Array.from(new Set((checklistMap[path] || []).map(x => String(x).trim().toUpperCase()).filter(Boolean)));
+                setByPath(out, path, arr);
             });
             return out;
         }
@@ -3990,6 +4540,20 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
         function closeConfigCenter() {
             const modal = document.getElementById('config-modal');
             if (modal) modal.classList.add('hidden');
+        }
+
+        function toggleLiveParamsDrawer(forceOpen = null) {
+            const drawer = document.getElementById('live-params-drawer');
+            if (!drawer) return;
+            syncRuntimeParamsUI();
+            const opening = forceOpen === null ? drawer.classList.contains('pointer-events-none') : !!forceOpen;
+            if (opening) {
+                drawer.classList.remove('translate-x-[110%]', 'opacity-0', 'pointer-events-none');
+                drawer.classList.add('translate-x-0', 'opacity-100');
+            } else {
+                drawer.classList.remove('translate-x-0', 'opacity-100');
+                drawer.classList.add('translate-x-[110%]', 'opacity-0', 'pointer-events-none');
+            }
         }
 
         function updateWebhookRetryStatus(text) {
@@ -4214,6 +4778,11 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 const res = await fetch('/api/config');
                 const data = await res.json();
                 if (data.status !== 'success') throw new Error(data.msg || '读取配置失败');
+                if (Array.isArray(data.webhook_category_options) && data.webhook_category_options.length) {
+                    webhookCategoryOptions = data.webhook_category_options;
+                } else {
+                    webhookCategoryOptions = WEBHOOK_CATEGORY_OPTIONS_DEFAULT.slice();
+                }
                 configDraft = data.config || {};
                 renderConfigForm(configDraft);
                 await refreshHistorySyncStatus();
@@ -4239,9 +4808,11 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 if (data.status !== 'success') throw new Error(data.msg || '保存失败');
                 configDraft = parsed;
                 applyConfigToBoards(configDraft);
-                if (status) status.innerText = '保存成功，已生效';
+                const savedMode = String(data.mode || getByPath(configDraft, 'system.mode', 'backtest'));
+                const liveReady = data.live_enabled === true;
+                if (status) status.innerText = `保存成功，已生效（模式=${savedMode}，实盘生效=${liveReady ? '是' : '否'}）`;
                 await syncStatus();
-                logMessage('SYSTEM', '配置保存成功并已生效', 'success');
+                logMessage('SYSTEM', `配置保存成功并已生效（模式=${savedMode}，实盘生效=${liveReady ? '是' : '否'}）`, 'success');
             } catch (e) {
                 if (status) status.innerText = `保存失败: ${e}`;
             }
@@ -4968,7 +5539,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 const runningCodes = Array.isArray(data.live_running_codes) ? data.live_running_codes : [];
                 const liveRunningByStatus = Boolean(data.live_running || runningCodes.length > 0);
                 const liveByCabinet = Boolean(data.is_running && String(data.active_cabinet_type || '').toLowerCase().includes('live'));
-                liveRunning = liveEnabled && (liveRunningByStatus || liveByCabinet);
+                liveRunning = (liveRunningByStatus || liveByCabinet);
+                if (liveRunning) liveActionPending = false;
                 const reportStatus = String(data.current_report_status || '').toLowerCase();
                 const reportError = data.current_report_error;
                 liveLastError = (data.live_last_error && typeof data.live_last_error === 'object') ? data.live_last_error : null;
@@ -5250,6 +5822,18 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             if (moreBtn && moreMenu && !moreBtn.contains(e.target) && !moreMenu.contains(e.target)) {
                 moreMenu.classList.add('hidden');
             }
+            const drawer = document.getElementById('live-params-drawer');
+            const drawerBtn = document.getElementById('live-params-btn');
+            const drawerFab = document.getElementById('live-params-fab');
+            if (
+                drawer
+                && (!drawer.classList.contains('pointer-events-none'))
+                && (!drawer.contains(e.target))
+                && (!drawerBtn || !drawerBtn.contains(e.target))
+                && (!drawerFab || !drawerFab.contains(e.target))
+            ) {
+                toggleLiveParamsDrawer(false);
+            }
         });
 
         function switchStrategy(val) {
@@ -5447,6 +6031,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     logMessage('回测', '已发送终止请求', 'warning');
                 } else {
                     logMessage('回测', data.msg || '当前没有运行中的回测任务', 'warning');
+                    closeBacktestStream();
+                    setBacktestButtonState(BACKTEST_BTN_STATE.idle);
                 }
             } catch (e) {
                 logMessage('回测', `终止失败: ${e}`, 'danger');
@@ -5462,6 +6048,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const overlay = document.getElementById('backtest-overlay');
             if (overlay) overlay.classList.remove('active');
             strategyReportsBuffer = [];
+            DIAG_STATE.backtestSummaryWinRate = null;
+            DIAG_STATE.backtestReportWinRate = null;
             backtestResultRecovered = false;
             backtestStreamClosed = false;
             document.getElementById('bt-strategy-reports').innerHTML = '';
@@ -5955,6 +6543,31 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             updateConfidenceScore();
         }
 
+        function renderLiveTradeExec(data) {
+            const dirRaw = String(data?.direction || '--').toUpperCase();
+            const dirText = dirRaw === 'BUY' ? '买入' : (dirRaw === 'SELL' ? '卖出' : dirRaw);
+            const priceNum = Number(data?.actual_price ?? data?.price ?? 0);
+            const qty = Number(data?.qty || 0);
+            const strategy = String(data?.strategy_id || '--');
+            const tradeTime = String(data?.time || data?.dt || '--');
+            const actionEl = document.getElementById('war-action');
+            if (actionEl) {
+                actionEl.innerText = dirText;
+                actionEl.className = `font-bold ${dirRaw === 'BUY' ? 'text-trading-green' : (dirRaw === 'SELL' ? 'text-trading-red' : 'text-slate-300')}`;
+            }
+            if (Number.isFinite(priceNum) && priceNum > 0) {
+                setMetricText('war-price', priceNum.toFixed(2), priceNum);
+            } else {
+                setMetricText('war-price', '--', null);
+            }
+            const timeEl = document.getElementById('war-time');
+            if (timeEl) timeEl.innerText = tradeTime;
+            if (dirRaw === 'BUY' || dirRaw === 'SELL') {
+                const priceText = Number.isFinite(priceNum) && priceNum > 0 ? priceNum.toFixed(2) : '--';
+                logMessage('尚书省', `[${strategy}] ${dirText} @ ${priceText} x ${qty || '--'} (${tradeTime})`, dirRaw === 'BUY' ? 'success' : 'warning');
+            }
+        }
+
         function updateMinistryTick(data) {
             let latestCash = null;
             if (data.cash !== undefined) {
@@ -6218,6 +6831,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             document.getElementById('bt-code').innerText = data.stock;
             document.getElementById('bt-period').innerText = data.period;
             document.getElementById('bt-trades').innerText = data.total_trades;
+            DIAG_STATE.backtestSummaryWinRate = computeWeightedWinRate(data.ranking, 'win_rate', 'total_trades');
+            updateConfidenceScore();
             
             fetchGlobalStrategies();
 
@@ -6264,6 +6879,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             } else {
                 strategyReportsBuffer.push(report);
             }
+            DIAG_STATE.backtestReportWinRate = computeWeightedWinRate(strategyReportsBuffer, 'win_rate', 'trade_count');
+            updateConfidenceScore();
             renderStrategyReports();
         }
 
