@@ -15,6 +15,7 @@ class TushareProvider:
         # Default to a placeholder token if none provided. User must replace this.
         self.token = token
         self.event_callback = event_callback
+        self.last_error = ""
         cfg = ConfigLoader.reload()
         self._cache_enabled = bool(cfg.get("data_provider.local_cache_enabled", True))
         cache_dir = str(cfg.get("data_provider.local_cache_dir", "data/history/cache") or "data/history/cache")
@@ -34,6 +35,7 @@ class TushareProvider:
             self.pro = ts.pro_api()
         else:
             self.pro = None
+            self.last_error = "tushare_token 未配置"
             print("⚠️ Warning: Tushare Token not provided. Please initialize with a valid token.")
 
     def _emit_system_event(self, msg, code="", source="tushare"):
@@ -115,6 +117,21 @@ class TushareProvider:
         safe_code = str(code).upper().replace(".", "_")
         return os.path.join(self._cache_dir, f"tushare_{safe_code}_rt_today.csv")
 
+    def _to_naive_ts(self, value):
+        ts_val = pd.to_datetime(value, errors="coerce")
+        if pd.isna(ts_val):
+            return ts_val
+        try:
+            tz_obj = getattr(ts_val, "tz", None)
+            if tz_obj is not None:
+                try:
+                    ts_val = ts_val.tz_convert(None)
+                except Exception:
+                    ts_val = ts_val.tz_localize(None)
+        except Exception:
+            pass
+        return ts_val
+
     def _normalize_minutes_df(self, df):
         if df is None or df.empty:
             return pd.DataFrame()
@@ -141,14 +158,20 @@ class TushareProvider:
         if not os.path.exists(path):
             return pd.DataFrame(), False
         try:
+            st = self._to_naive_ts(start_time)
+            et = self._to_naive_ts(end_time)
+            if pd.isna(st) or pd.isna(et):
+                return pd.DataFrame(), False
             df = pd.read_csv(path)
             if "dt" in df.columns:
                 df["dt"] = pd.to_datetime(df["dt"])
             df = self._normalize_minutes_df(df)
             if df.empty:
                 return pd.DataFrame(), False
-            full_coverage = df["dt"].min() <= start_time and df["dt"].max() >= end_time
-            df_range = df[(df["dt"] >= start_time) & (df["dt"] <= end_time)].copy()
+            df["dt"] = pd.to_datetime(df["dt"], errors="coerce").apply(self._to_naive_ts)
+            df = df.dropna(subset=["dt"])
+            full_coverage = df["dt"].min() <= st and df["dt"].max() >= et
+            df_range = df[(df["dt"] >= st) & (df["dt"] <= et)].copy()
             return df_range, bool(full_coverage and not df_range.empty)
         except Exception:
             return pd.DataFrame(), False
@@ -173,7 +196,6 @@ class TushareProvider:
         except Exception:
             return
 
-<<<<<<< HEAD
     def _load_rt_today_cache(self, code, day_text=None):
         path = self._rt_today_cache_file_path(code)
         if not os.path.exists(path):
@@ -239,7 +261,7 @@ class TushareProvider:
             "bars": int(len(df)),
             "last_dt": str(df["dt"].max())
         }
-=======
+
     def _is_cn_trading_minutes(self, dt_obj):
         dt = pd.to_datetime(dt_obj, errors="coerce")
         if pd.isna(dt):
@@ -250,9 +272,9 @@ class TushareProvider:
         return (570 <= hm <= 690) or (780 <= hm <= 900)
 
     def _should_use_rt_min(self, start_time, end_time):
-        now_ts = pd.Timestamp(datetime.now())
-        st = pd.to_datetime(start_time, errors="coerce")
-        et = pd.to_datetime(end_time, errors="coerce")
+        now_ts = self._to_naive_ts(datetime.now())
+        st = self._to_naive_ts(start_time)
+        et = self._to_naive_ts(end_time)
         if pd.isna(st) or pd.isna(et):
             return False
         if (now_ts - et) > pd.Timedelta(minutes=30):
@@ -291,14 +313,15 @@ class TushareProvider:
         work = self._normalize_minutes_df(work)
         if work.empty:
             return pd.DataFrame()
-        st = pd.to_datetime(start_time, errors="coerce") if start_time is not None else None
-        et = pd.to_datetime(end_time, errors="coerce") if end_time is not None else None
+        st = self._to_naive_ts(start_time) if start_time is not None else None
+        et = self._to_naive_ts(end_time) if end_time is not None else None
+        work["dt"] = pd.to_datetime(work["dt"], errors="coerce").apply(self._to_naive_ts)
+        work = work.dropna(subset=["dt"])
         if st is not None and (not pd.isna(st)):
             work = work[work["dt"] >= st]
         if et is not None and (not pd.isna(et)):
             work = work[work["dt"] <= et]
         return work.reset_index(drop=True)
->>>>>>> dfc25ee (feat: 启用实盘模式并增强数据源与资金管理功能)
 
     def set_token(self, token):
         self.token = token
@@ -306,6 +329,7 @@ class TushareProvider:
         client.DataApi._DataApi__http_url = "http://tushare.xyz"
         ts.set_token(self.token)
         self.pro = ts.pro_api()
+        self.last_error = ""
 
     def get_latest_bar(self, code):
         """
@@ -317,13 +341,6 @@ class TushareProvider:
             if replay_bar is not None:
                 return replay_bar
         try:
-            # Optimized: Use Tushare Pro 'rt_min' if available (requires permissions)
-            # This is cleaner than scraping.
-            # Example: pro.rt_min(ts_code='600000.SH')
-            
-            # Normalize code (rt_min expects ts_code like 600000.SH)
-            
-            # Try rt_min first (Official Real-time Minute API)
             try:
                 df = self.pro.rt_min(ts_code=code)
                 if df is not None and not df.empty:
@@ -338,7 +355,7 @@ class TushareProvider:
                         dt = pd.to_datetime(f"{today} {time_val}", errors='coerce')
                     if pd.isna(dt):
                         raise ValueError(f"rt_min invalid time: {time_val}")
-                    
+
                     payload = {
                         'code': str(row.get('ts_code', code)),
                         'dt': dt,
@@ -354,17 +371,13 @@ class TushareProvider:
                     return payload
             except Exception as e_rt:
                 self.last_error = f"rt_min_failed code={code} err={e_rt}"
-
-            # Fallback to get_realtime_quotes (Scraping)
             df = ts.get_realtime_quotes(code)
             if df is None or df.empty:
-                # Fallback to pro.daily for latest close (not real-time but better than nothing)
                 end_date = datetime.now().strftime("%Y%m%d")
                 start_date = (datetime.now() - timedelta(days=10)).strftime("%Y%m%d")
                 df_daily = self.pro.daily(ts_code=code, start_date=start_date, end_date=end_date)
-                
                 if df_daily is not None and not df_daily.empty:
-                    row = df_daily.iloc[0] # Latest
+                    row = df_daily.iloc[0]
                     payload = {
                         'code': code,
                         'dt': pd.to_datetime(row['trade_date']),
@@ -372,24 +385,15 @@ class TushareProvider:
                         'high': float(row['high']),
                         'low': float(row['low']),
                         'close': float(row['close']),
-                        'vol': float(row['vol']) * 100, # Hand is unit? No, usually vol is lot or share. Tushare daily vol is "hand" (100 shares)? No, it says "Vol (Hand)". Let's assume hand.
-                        'amount': float(row['amount']) * 1000 # Amount is usually in thousands?
+                        'vol': float(row['vol']) * 100,
+                        'amount': float(row['amount']) * 1000
                     }
                     return payload
                 return None
-                
             if len(df.index) <= 0:
                 self.last_error = f"get_realtime_quotes_empty code={code}"
                 return None
             row = df.iloc[0]
-            
-            # Normalize format
-            # Tushare RT columns: name, open, pre_close, price, high, low, bid, ask, volume, amount, date, time
-            
-            # Combine date and time
-            # Note: get_realtime_quotes returns different columns based on source
-            # For tushare < 1.3, it uses sina.
-            
             date_str = str(row.get('date', '') or '')
             time_str = str(row.get('time', '') or '')
             if not date_str or not time_str:
@@ -400,7 +404,6 @@ class TushareProvider:
             if pd.isna(dt):
                 self.last_error = f"get_realtime_quotes_invalid_dt code={code} raw={dt_str}"
                 return None
-            
             payload = {
                 'code': code,
                 'dt': dt,
@@ -416,13 +419,11 @@ class TushareProvider:
             return payload
         except Exception as e:
             self.last_error = f"get_latest_bar_failed code={code} err={e}"
-            # print(f"Error fetching Tushare RT data: {e}")
-            # Try fallback inside exception if get_realtime_quotes crashed (e.g. network issue or parsing issue)
             try:
-                 end_date = datetime.now().strftime("%Y%m%d")
-                 start_date = (datetime.now() - timedelta(days=10)).strftime("%Y%m%d")
-                 df_daily = self.pro.daily(ts_code=code, start_date=start_date, end_date=end_date)
-                 if df_daily is not None and not df_daily.empty:
+                end_date = datetime.now().strftime("%Y%m%d")
+                start_date = (datetime.now() - timedelta(days=10)).strftime("%Y%m%d")
+                df_daily = self.pro.daily(ts_code=code, start_date=start_date, end_date=end_date)
+                if df_daily is not None and not df_daily.empty:
                     row = df_daily.iloc[0]
                     payload = {
                         'code': code,
@@ -446,6 +447,12 @@ class TushareProvider:
         Interface: pro.stk_mins or standard ts.pro_bar
         """
         if not self.pro:
+            self.last_error = "tushare_token 未配置"
+            return pd.DataFrame()
+        start_time = self._to_naive_ts(start_time)
+        end_time = self._to_naive_ts(end_time)
+        if pd.isna(start_time) or pd.isna(end_time):
+            self.last_error = "时间参数无效"
             return pd.DataFrame()
         start_time = pd.to_datetime(start_time, errors="coerce")
         end_time = pd.to_datetime(end_time, errors="coerce")
@@ -461,7 +468,6 @@ class TushareProvider:
         hist_end = min(end_time, today_start - timedelta(seconds=1))
         hist_cached = pd.DataFrame()
         if not cached_df.empty:
-<<<<<<< HEAD
             hist_cached = cached_df[cached_df["dt"] < today_start].copy()
         hist_df = hist_cached.copy()
         if hist_end >= start_time:
@@ -472,7 +478,6 @@ class TushareProvider:
                 start_str = fetch_start.strftime("%Y-%m-%d %H:%M:%S")
                 end_str = hist_end.strftime("%Y-%m-%d %H:%M:%S")
                 try:
-                    print(f"DEBUG: Requesting Tushare data for {code} ({start_str} - {end_str})")
                     df_hist_remote = self.pro.stk_mins(ts_code=code, freq='1min', start_date=start_str, end_date=end_str)
                     df_hist_remote = self._normalize_minutes_df(df_hist_remote)
                     if df_hist_remote.empty:
@@ -500,48 +505,8 @@ class TushareProvider:
         out = self._normalize_minutes_df(pd.concat(parts, ignore_index=True))
         out = out[(out["dt"] >= start_time) & (out["dt"] <= end_time)].copy()
         self._save_minute_cache(code, out)
+        self.last_error = ""
         return out
-=======
-            fetch_start = cached_df["dt"].max() + timedelta(minutes=1)
-            if fetch_start > end_time:
-                return cached_df
-            
-        # Format dates: YYYY-MM-DD HH:MM:SS
-        start_str = fetch_start.strftime("%Y-%m-%d %H:%M:%S")
-        end_str = end_time.strftime("%Y-%m-%d %H:%M:%S")
-        
-        try:
-            print(f"DEBUG: Requesting Tushare data for {code} ({start_str} - {end_str})")
-            df = pd.DataFrame()
-            use_rt_min = self._should_use_rt_min(fetch_start, end_time)
-            if use_rt_min:
-                log_msg = f"实盘实时拉取: rt_min | {code} | {start_str} -> {end_str}"
-                print(log_msg)
-                self._emit_system_event(log_msg, code=code, source="rt_min")
-                df = self._fetch_rt_min(code, fetch_start, end_time)
-            if df is None or df.empty:
-                log_msg = f"历史回补: stk_mins | {code} | {start_str} -> {end_str}"
-                print(log_msg)
-                self._emit_system_event(log_msg, code=code, source="stk_mins")
-                df = self.pro.stk_mins(ts_code=code, freq='1min', start_date=start_str, end_date=end_str)
-            
-            if df is None or df.empty:
-                print(f"⚠️ Tushare 分钟数据为空: {code} (rt_min/stk_mins)")
-                return cached_df if not cached_df.empty else pd.DataFrame()
-                
-            # Columns: ts_code, trade_time, open, close, high, low, vol, amount
-            # Rename
-            df = self._normalize_minutes_df(df)
-            if not cached_df.empty:
-                df = pd.concat([cached_df, df], ignore_index=True)
-                df = self._normalize_minutes_df(df)
-            self._save_minute_cache(code, df)
-            return df
-            
-        except Exception as e:
-            print(f"Error fetching Tushare history: {e}")
-            return cached_df if not cached_df.empty else pd.DataFrame()
->>>>>>> dfc25ee (feat: 启用实盘模式并增强数据源与资金管理功能)
 
     def _fetch_stk_mins(self, code, start_time, end_time, freq="1min"):
         if not self.pro:

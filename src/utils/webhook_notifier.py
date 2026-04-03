@@ -77,7 +77,7 @@ class WebhookNotifier:
     def _build_text(self, event_type, stock_code, data):
         ts_text = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         evt_label_map = {
-            "trade_exec": "成交回报",
+            "trade_exec": "成交信号",
             "live_alert": "实盘告警",
             "zhongshu": "策略信号",
             "menxia": "风控结果",
@@ -111,9 +111,15 @@ class WebhookNotifier:
             ])
         strategy_id = str(data.get("strategy_id", "") or "")
         strategy_name_raw = str(data.get("strategy_name", "") or "").strip()
-        strategy_name = self._normalize_strategy_display_name(
-            strategy_name_raw if strategy_name_raw else strategy_id
-        ) if strategy_id or strategy_name_raw else ""
+        strategy_name = ""
+        if strategy_name_raw and (not self._looks_garbled(strategy_name_raw)):
+            strategy_name = self._normalize_strategy_display_name(strategy_name_raw)
+        elif strategy_id:
+            mapped_name = str(self._load_strategy_name_map().get(strategy_id, "") or "").strip()
+            if mapped_name and (not self._looks_garbled(mapped_name)):
+                strategy_name = f"{strategy_id}-{mapped_name}"
+        if (not strategy_name) and strategy_id:
+            strategy_name = self._normalize_strategy_display_name(strategy_id)
         direction = str(data.get("direction", "") or "").upper()
         direction_label = dir_label_map.get(direction, direction)
         qty_val = self._to_float(data.get("qty", None))
@@ -151,7 +157,7 @@ class WebhookNotifier:
         if strategy_id:
             lines.append(f"策略ID: {strategy_id}")
         if strategy_name:
-            lines.append(f"策略: {strategy_name}")
+            lines.append(f"策略名称: {strategy_name}")
         if direction_label:
             lines.append(f"方向: {direction_label}")
         if data.get("price") is not None:
@@ -165,6 +171,10 @@ class WebhookNotifier:
             lines.append(f"{amount_label}: {self._fmt_amount(amount_val)}")
         if fee_est is not None:
             lines.append(f"预估手续费: {self._fmt_amount(fee_est.get('total'))}")
+        if data.get("current_position_qty") is not None:
+            lines.append(f"当前持仓数量: {data.get('current_position_qty')}")
+        if data.get("current_position_amount") is not None:
+            lines.append(f"当前持仓金额: {data.get('current_position_amount')}")
         if metric_label:
             lines.append(f"监控指标: {metric_label}")
         if level_label:
@@ -352,7 +362,7 @@ class WebhookNotifier:
 
     def _build_feishu_payload(self, event_type, stock_code, data):
         evt_label_map = {
-            "trade_exec": ("成交回报", "green", "✅"),
+            "trade_exec": ("成交信号", "green", "✅"),
             "live_alert": ("实盘告警", "red", "🚨"),
             "zhongshu": ("策略信号", "blue", "📈"),
             "menxia": ("风控结果", "orange", "🛡️"),
@@ -394,11 +404,24 @@ class WebhookNotifier:
             }
         strategy_id = str(data.get("strategy_id", "") or "")
         strategy_name_raw = str(data.get("strategy_name", "") or "").strip()
-        strategy_name = self._normalize_strategy_display_name(
-            strategy_name_raw if strategy_name_raw else strategy_id
-        ) if strategy_id or strategy_name_raw else ""
+        strategy_name = ""
+        if strategy_name_raw and (not self._looks_garbled(strategy_name_raw)):
+            strategy_name = self._normalize_strategy_display_name(strategy_name_raw)
+        elif strategy_id:
+            mapped_name = str(self._load_strategy_name_map().get(strategy_id, "") or "").strip()
+            if mapped_name and (not self._looks_garbled(mapped_name)):
+                strategy_name = f"{strategy_id}-{mapped_name}"
         direction = str(data.get("direction", "") or "").upper()
         direction_label, direction_color = dir_color_map.get(direction, ("", "grey"))
+        if event_type == "trade_exec":
+            if direction == "BUY":
+                title = "买入-成交信号"
+                template = "green"
+            elif direction == "SELL":
+                title = "卖出-成交信号"
+                template = "red"
+        if (not strategy_name) and strategy_id:
+            strategy_name = self._normalize_strategy_display_name(strategy_id)
         qty_val = self._to_float(data.get("qty", None))
         hands_val = None if qty_val is None else (qty_val / 100.0)
         price_val = self._to_float(data.get("price", None))
@@ -473,7 +496,7 @@ class WebhookNotifier:
         if strategy_id:
             kv_lines.append(f"**策略ID**：`{self._safe_text(strategy_id)}`")
         if strategy_name:
-            kv_lines.append(f"**策略名称**：{self._safe_text(strategy_name)}")
+            kv_lines.append(f"**策略名称**：`{self._safe_text(strategy_name)}`")
         if direction_label:
             kv_lines.append(f"**方向**：<font color='{direction_color}'>{self._safe_text(direction_label)}</font>")
         if data.get("price") is not None:
@@ -487,6 +510,10 @@ class WebhookNotifier:
             kv_lines.append(f"**{amount_label}**：`{self._safe_text(self._fmt_amount(amount_val))}`")
         if fee_est is not None:
             kv_lines.append(f"**预估手续费**：`{self._safe_text(self._fmt_amount(fee_est.get('total')))}`")
+        if data.get("current_position_qty") is not None:
+            kv_lines.append(f"**当前持仓数量**：`{self._safe_text(data.get('current_position_qty'))}`")
+        if data.get("current_position_amount") is not None:
+            kv_lines.append(f"**当前持仓金额**：`{self._safe_text(data.get('current_position_amount'))}`")
         if metric_label:
             kv_lines.append(f"**监控指标**：{self._safe_text(metric_label)}")
         if level_label:
@@ -496,42 +523,7 @@ class WebhookNotifier:
         if data.get("critical") is not None:
             kv_lines.append(f"**严重阈值**：`{self._safe_text(data.get('critical'))}`")
         content_main = "\n".join(kv_lines)
-        signal_strength_raw = data.get("signal_strength", data.get("signal_consistency", None))
-        strength_bar, strength_pct = self._progress_bar(signal_strength_raw, width=12)
-        pnl_val = self._to_float(data.get("daily_pnl", data.get("pnl", data.get("realized_pnl", None))))
-        pos_ratio_val = self._to_percent_number(data.get("pos_ratio", data.get("position_ratio", data.get("single_position_weight", None))))
-        pnl_text = "--" if pnl_val is None else f"{pnl_val:.2f}"
-        if pnl_val is not None and str(data.get("pnl", "")).strip().endswith("%"):
-            pnl_text = f"{pnl_val:.2f}%"
-        pos_text = "--" if pos_ratio_val is None else f"{pos_ratio_val:.2f}%"
-        strength_text = "--" if strength_pct is None else f"{strength_pct:.1f}%"
-        pnl_color = "grey"
-        if pnl_val is not None:
-            pnl_color = "green" if pnl_val >= 0 else "red"
-        pos_color = "grey"
-        if pos_ratio_val is not None:
-            pos_color = "green" if pos_ratio_val < 60 else ("orange" if pos_ratio_val < 85 else "red")
-        strength_color = "grey"
-        if strength_pct is not None:
-            strength_color = "green" if strength_pct >= 70 else ("orange" if strength_pct >= 45 else "red")
-        elements = [
-            {"tag": "div", "text": {"tag": "lark_md", "content": content_main}},
-            {
-                "tag": "hr"
-            },
-            {
-                "tag": "div",
-                "text": {
-                    "tag": "lark_md",
-                    "content": (
-                        "**📊 交易日报看板**\n"
-                        f"**盈亏表现**：<font color='{pnl_color}'>{self._safe_text(pnl_text)}</font>\n"
-                        f"**仓位占比**：<font color='{pos_color}'>{self._safe_text(pos_text)}</font>\n"
-                        f"**信号强度**：<font color='{strength_color}'>{self._safe_text(strength_text)}</font> `{self._safe_text(strength_bar)}`"
-                    )
-                }
-            }
-        ]
+        elements = [{"tag": "div", "text": {"tag": "lark_md", "content": content_main}}]
         if event_type == "daily_summary":
             win_rate = self._to_percent_number(data.get("win_rate", None))
             max_dd = self._to_percent_number(data.get("max_drawdown", None))

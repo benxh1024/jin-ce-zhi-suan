@@ -9,7 +9,7 @@ class BaseStrategy:
         self.name = f"Placeholder_Strategy_{strategy_id}" # Marked as placeholder
         self.positions = {} # Code -> Qty
         self.cash = 0.0 # Virtual cash if tracked per strategy
-        self.history = []
+        self.history = {}
 
     def on_bar(self, kline):
         """

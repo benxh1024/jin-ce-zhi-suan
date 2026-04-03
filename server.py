@@ -533,7 +533,7 @@ WEBHOOK_CATEGORY_OPTIONS = [
     {"value": "B", "label": "B 系统异常", "desc": "异常退出、报错、失败类系统消息"},
     {"value": "C", "label": "C 交易决策", "desc": "策略信号（zhongshu）"},
     {"value": "D", "label": "D 风控结果", "desc": "风控放行/驳回（menxia）"},
-    {"value": "E", "label": "E 成交执行", "desc": "成交回报（trade_exec）"},
+    {"value": "E", "label": "E 成交执行", "desc": "成交信号（trade_exec）"},
     {"value": "F", "label": "F 账户资金", "desc": "账户与资金池快照（account/fund_pool）"},
     {"value": "G", "label": "G 监控告警", "desc": "实盘告警（live_alert）"},
     {"value": "H", "label": "H 健康快照", "desc": "监控快照/数据新鲜度"},
@@ -1168,7 +1168,8 @@ async def cabinet_event_handler(event_type, data):
     payload = {
         "type": event_type,
         "data": data,
-        "timestamp": asyncio.get_event_loop().time()
+        "timestamp": asyncio.get_event_loop().time(),
+        "server_time": datetime.now().isoformat(timespec="seconds")
     }
     await broadcast(payload)
 
@@ -3458,7 +3459,8 @@ async def emit_event_to_ws(event_type, data, stock_code=None):
             })
     payload = {
         "type": event_type,
-        "data": emit_data
+        "data": emit_data,
+        "server_time": datetime.now().isoformat(timespec="seconds")
     }
     if stock_code:
         payload["stock_code"] = stock_code
@@ -3471,7 +3473,11 @@ async def _broadcast_system_and_notify(msg: str, stock_codes=None):
     text = str(msg or "").strip()
     if not text:
         return
-    await manager.broadcast({"type": "system", "data": {"msg": text}})
+    await manager.broadcast({
+        "type": "system",
+        "data": {"msg": text},
+        "server_time": datetime.now().isoformat(timespec="seconds")
+    })
     codes = []
     if isinstance(stock_codes, (list, tuple, set)):
         for item in stock_codes:

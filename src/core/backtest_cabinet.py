@@ -738,6 +738,7 @@ class BacktestCabinet:
                         'time': str(kline['dt']),
                         'kline_timeframe': '1分钟驱动',
                         'kline_dt': str(kline['dt']),
+                        'stock_code': str(self.stock_code or '').upper(),
                         'strategy_timeframes': strategy_trigger_tf,
                         'runnable_strategy_ids': runnable_strategy_ids,
                         'runnable_timeframes': runnable_tf

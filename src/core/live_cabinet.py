@@ -100,6 +100,8 @@ class LiveCabinet:
         self._direct_tf_support = {}
         self.startup_kline_freshness = {}
         self._last_kline_fetch_notice_ts = 0.0
+        warmup_retry_raw = int(self.config.get("system.live_warmup_retry_sec", 30) or 30)
+        self._warmup_retry_sec = max(10, min(warmup_retry_raw, 600))
         self._summary_day = ""
         self._day_start_fund_value = None
         self._intraday_fund_curve = []
@@ -621,6 +623,72 @@ class LiveCabinet:
             return False
         return int(dt.weekday()) < 5
 
+    def _provider_name(self, provider):
+        name = str(getattr(provider, "__class__", type("X", (), {})).__name__ or "").lower()
+        if "tushare" in name:
+            return "tushare"
+        if "mysql" in name:
+            return "mysql"
+        if "postgres" in name:
+            return "postgres"
+        if "akshare" in name:
+            return "akshare"
+        if "dataprovider" in name:
+            return "default"
+        return name or "unknown"
+
+    def _classify_warmup_reason(self, text, provider_name=""):
+        t = str(text or "").lower()
+        p = str(provider_name or "").lower()
+        if ("token" in t) or ("权限" in t) or ("permission" in t) or ("积分" in t):
+            return "TOKEN_INVALID", "Token失效/权限不足"
+        if ("timeout" in t) or ("timed out" in t) or ("超时" in t):
+            return "NETWORK_TIMEOUT", "网络超时"
+        if ("connection" in t) or ("连接失败" in t) or ("max retries exceeded" in t) or ("name or service not known" in t) or ("network" in t):
+            return "NETWORK_ERROR", "网络连接失败"
+        if ("ok_no_data" in t) and (p in {"mysql", "postgres"}):
+            return "TABLE_EMPTY", "数据表空/近三日无数据"
+        if ("未配置" in t) and ("表名" in t):
+            return "TABLE_EMPTY", "数据表未配置"
+        if ("无数据" in t) or ("empty" in t) or ("no data" in t) or ("未返回最新行情" in t) or ("历史k线为空" in t):
+            return "CODE_NO_DATA", "代码无数据"
+        return "UNKNOWN", "未知原因"
+
+    def _startup_failure_context(self):
+        providers = [self.provider]
+        if self._tushare_fallback_provider is not None:
+            providers.append(self._tushare_fallback_provider)
+        details = []
+        picked_code = ""
+        picked_label = ""
+        if self.provider_type == "tushare" and (not str(self.tushare_token or "").strip()):
+            return "TOKEN_INVALID", "Token未配置", "tushare_token 未配置"
+        for provider in providers:
+            name = self._provider_name(provider)
+            conn_ok = None
+            conn_msg = ""
+            if hasattr(provider, "check_connectivity"):
+                try:
+                    ok, msg = provider.check_connectivity(self.stock_code)
+                    conn_ok = bool(ok)
+                    conn_msg = str(msg or "")
+                except Exception as e:
+                    conn_ok = False
+                    conn_msg = str(e)
+            last_err = str(getattr(provider, "last_error", "") or "")
+            detail = f"{name}: conn={conn_ok} msg={conn_msg} err={last_err}".strip()
+            details.append(detail)
+            raw = " | ".join([conn_msg, last_err])
+            code, label = self._classify_warmup_reason(raw, provider_name=name)
+            if picked_code in {"", "UNKNOWN"} and code != "UNKNOWN":
+                picked_code = code
+                picked_label = label
+        if not picked_code:
+            picked_code = "UNKNOWN"
+            picked_label = "未知原因"
+        detail_text = " || ".join([x for x in details if x]).strip()
+        return picked_code, picked_label, detail_text
+
     def _build_kline_freshness_snapshot(self, latest_map, now_dt=None, check_ok=True, message=""):
         now_dt = pd.to_datetime(now_dt or datetime.now(), errors="coerce")
         expected_date = self._expected_latest_trade_date(now_dt)
@@ -654,12 +722,23 @@ class LiveCabinet:
             "check_time": now_dt.strftime("%Y-%m-%d %H:%M:%S"),
             "check_ok": bool(check_ok),
             "message": str(message or ""),
+            "reason_category": "OK" if check_ok else "UNKNOWN",
+            "reason_label": "正常" if check_ok else "未知原因",
+            "reason_detail": "",
             "expected_latest_trade_date": expected_date.strftime("%Y-%m-%d"),
             "latest_kline_date": latest_date_text or "",
             "latest_kline_dt": latest_dt_text or "",
             "lagged": bool(has_lag),
             "timeframes": per_tf
         }
+
+    @staticmethod
+    def _prime_strategy_history(strategy, stock_code, df):
+        history = getattr(strategy, "history", None)
+        if not isinstance(history, dict):
+            history = {}
+            setattr(strategy, "history", history)
+        history[str(stock_code)] = df.copy()
 
     def warm_up(self):
         """
@@ -675,12 +754,16 @@ class LiveCabinet:
             latest = self._tushare_fallback_provider.get_latest_bar(self.stock_code)
         if not latest:
             print("❌ 无法获取最新行情，预热失败。")
+            reason_code, reason_label, reason_detail = self._startup_failure_context()
             self.startup_kline_freshness = self._build_kline_freshness_snapshot(
                 latest_map={},
                 now_dt=datetime.now(),
                 check_ok=False,
                 message="无法获取最新行情"
             )
+            self.startup_kline_freshness["reason_category"] = reason_code
+            self.startup_kline_freshness["reason_label"] = reason_label
+            self.startup_kline_freshness["reason_detail"] = reason_detail
             return False
             
         end_time = latest['dt']
@@ -693,12 +776,18 @@ class LiveCabinet:
                 df = self._tushare_fallback_provider.fetch_minute_data(self.stock_code, start_time, end_time)
         if df.empty:
             print("❌ 历史数据为空，策略无法初始化。")
+            reason_code, reason_label, reason_detail = self._startup_failure_context()
+            if reason_code == "UNKNOWN":
+                reason_code, reason_label = "CODE_NO_DATA", "代码无数据"
             self.startup_kline_freshness = self._build_kline_freshness_snapshot(
                 latest_map=latest_map,
                 now_dt=datetime.now(),
                 check_ok=False,
                 message="历史K线为空"
             )
+            self.startup_kline_freshness["reason_category"] = reason_code
+            self.startup_kline_freshness["reason_label"] = reason_label
+            self.startup_kline_freshness["reason_detail"] = reason_detail
             return False
             
         df = self.works.clean_data(df)
@@ -718,7 +807,7 @@ class LiveCabinet:
             return True
         last_bar = df.iloc[-1]
         for strategy in strategies_to_warm:
-            strategy.history[self.stock_code] = df.copy()
+            self._prime_strategy_history(strategy, self.stock_code, df)
             try:
                 strategy.on_bar(last_bar)
             except Exception as e:
@@ -986,7 +1075,7 @@ class LiveCabinet:
         await self._emit_account_snapshot()
         await self._emit_event('fund_pool', self.get_fund_pool_snapshot(include_transactions=False))
         
-        # Try warm up, but if it fails (e.g. no connection), we can still run in simulation mode for demo
+        # Try warm up, if it fails report reason and stop live loop
         warmup_success = self.warm_up()
         if self.startup_kline_freshness:
             await self._emit_event("live_kline_freshness", self.startup_kline_freshness)
@@ -995,7 +1084,22 @@ class LiveCabinet:
         print(f"👁️  监控标的: {self.stock_code}")
         print(f"🛡️  运行策略: 激活 {len(self.active_strategy_ids)} / 总计 {len(self.strategies)} 套")
         if not warmup_success:
-            print("⚠️ 真实数据预热失败，将使用【模拟数据模式】进行演示...")
+            reason = str(self.startup_kline_freshness.get("message", "启动校验失败") or "启动校验失败")
+            reason_category = str(self.startup_kline_freshness.get("reason_category", "UNKNOWN") or "UNKNOWN")
+            reason_label = str(self.startup_kline_freshness.get("reason_label", "未知原因") or "未知原因")
+            reason_detail = str(self.startup_kline_freshness.get("reason_detail", "") or "")
+            fail_msg = f"启动校验失败（{reason_label}）：{reason}"
+            if reason_detail:
+                fail_msg = f"{fail_msg} | {reason_detail}"
+            print(f"❌ {fail_msg}")
+            await self._emit_event('system', {
+                'msg': fail_msg,
+                'stock': self.stock_code,
+                'reason_category': reason_category,
+                'reason_label': reason_label,
+                'reason_detail': reason_detail
+            })
+            raise RuntimeError(fail_msg)
         print("--------------------------------------------------")
         active_ids = [str(x) for x in (self.active_strategy_ids or []) if str(x)]
         active_names = []
@@ -1016,7 +1120,7 @@ class LiveCabinet:
         try:
             while True:
                 try:
-                    await self._tick(simulation_mode=not warmup_success)
+                    await self._tick()
                 except Exception as e:
                     print(f"❌ 实盘tick异常: {e}")
                     await self._emit_event('system', {'msg': f'实盘tick异常: {e}', 'stock': self.stock_code})
@@ -1112,67 +1216,51 @@ class LiveCabinet:
                 names.append(sid)
         return " | ".join(parts), "、".join(names)
 
-    async def _tick(self, simulation_mode=False):
+    async def _tick(self):
         current_dt = None
         bar = None
         api_latency_ms = 0
-        
-        if simulation_mode:
-            import random
-            now_dt = datetime.now().replace(second=0, microsecond=0)
-            if not self._is_market_session_time(now_dt):
-                return
-            if not self.last_dt:
-                self.current_price = 15.0 # Mock start price
-            self.last_dt = self._to_naive_ts(self.last_dt)
-            if self.last_dt is not None and (not pd.isna(self.last_dt)) and now_dt <= self.last_dt:
-                return
-            change_pct = (random.random() - 0.5) * 0.02
-            self.current_price = self.current_price * (1 + change_pct)
-            self.last_dt = now_dt
-            bar = {
-                'code': self.stock_code,
-                'dt': now_dt,
-                'open': self.current_price,
-                'high': self.current_price * 1.005,
-                'low': self.current_price * 0.995,
-                'close': self.current_price,
-                'vol': random.randint(1000, 10000),
-                'amount': random.randint(10000, 100000)
-            }
-            current_dt = now_dt
-        else:
-            # 1. Get Real-time Data
-            self._announce_kline_fetching(timeframe="1min")
-            t0 = time.perf_counter()
-            bar = self.provider.get_latest_bar(self.stock_code)
-            api_latency_ms = int((time.perf_counter() - t0) * 1000)
-            if (not bar) and self._tushare_fallback_provider is not None:
-                t0 = time.perf_counter()
-                bar = self._tushare_fallback_provider.get_latest_bar(self.stock_code)
-                api_latency_ms = int((time.perf_counter() - t0) * 1000)
-            if not bar:
-                repaired = self._pull_latest_minute_bar()
-                if repaired is not None:
-                    bar = repaired
-                else:
-                    return
 
-            current_dt = self._to_naive_ts(bar.get('dt'))
-            self.last_dt = self._to_naive_ts(self.last_dt)
+        self._announce_kline_fetching(timeframe="1min")
+        t0 = time.perf_counter()
+        bar = self.provider.get_latest_bar(self.stock_code)
+        api_latency_ms = int((time.perf_counter() - t0) * 1000)
+        if (not bar) and self._tushare_fallback_provider is not None:
+            t0 = time.perf_counter()
+            bar = self._tushare_fallback_provider.get_latest_bar(self.stock_code)
+            api_latency_ms = int((time.perf_counter() - t0) * 1000)
+        if not bar:
+            repaired = self._pull_latest_minute_bar()
+            if repaired is not None:
+                bar = repaired
+            else:
+                reason_code, reason_label, reason_detail = self._startup_failure_context()
+                reason_text = reason_detail if reason_detail else "未返回最新行情"
+                fail_msg = f"K线拉取失败（{reason_label}）：{reason_text}"
+                await self._emit_event('system', {
+                    'msg': fail_msg,
+                    'stock': self.stock_code,
+                    'reason_category': reason_code,
+                    'reason_label': reason_label,
+                    'reason_detail': reason_detail
+                })
+                raise RuntimeError(fail_msg)
+
+        current_dt = self._to_naive_ts(bar.get('dt'))
+        self.last_dt = self._to_naive_ts(self.last_dt)
+        if self.last_dt is not None and (not pd.isna(self.last_dt)) and current_dt <= self.last_dt:
+            repaired = self._pull_latest_minute_bar()
+            if repaired is not None:
+                repaired_dt = self._to_naive_ts(repaired.get('dt'))
+                if repaired_dt > self.last_dt:
+                    bar = repaired
+                    current_dt = repaired_dt
             if self.last_dt is not None and (not pd.isna(self.last_dt)) and current_dt <= self.last_dt:
-                repaired = self._pull_latest_minute_bar()
-                if repaired is not None:
-                    repaired_dt = self._to_naive_ts(repaired.get('dt'))
-                    if repaired_dt > self.last_dt:
-                        bar = repaired
-                        current_dt = repaired_dt
-                if self.last_dt is not None and (not pd.isna(self.last_dt)) and current_dt <= self.last_dt:
-                    if (datetime.now() - current_dt) > timedelta(days=1):
-                        print(f"⚠️ 最新K线时间疑似过旧: {current_dt}")
-                    print(f"⏳ 等待K线更新... (当前: {current_dt})", end='\r')
-                return
-            self.last_dt = current_dt
+                if (datetime.now() - current_dt) > timedelta(days=1):
+                    print(f"⚠️ 最新K线时间疑似过旧: {current_dt}")
+                print(f"⏳ 等待K线更新... (当前: {current_dt})", end='\r')
+            return
+        self.last_dt = current_dt
         now_wall = datetime.now()
         if current_dt is not None and current_dt > (now_wall + timedelta(minutes=1)):
             current_dt = now_wall.replace(second=0, microsecond=0)
@@ -1205,7 +1293,8 @@ class LiveCabinet:
             'rsi': float(rsi_val),
             'time': current_dt.strftime("%H:%M:%S"),
             'kline_timeframe': '1分钟线',
-            'kline_dt': str(current_dt)
+            'kline_dt': str(current_dt),
+            'stock_code': str(bar.get('code') or self.stock_code or '').upper()
         })
         holdings_value_now = self.state_affairs.update_holdings_value({bar['code']: bar['close']})
         fund_value_now = float(self.revenue.cash) + float(holdings_value_now)
@@ -1304,6 +1393,7 @@ class LiveCabinet:
                 executed = self.state_affairs.execute_order(strategy_id, signal, bar)
                 if executed:
                     new_qty = self.state_affairs.positions[strategy_id][signal['code']]['qty'] if signal['code'] in self.state_affairs.positions.get(strategy_id, {}) else 0
+                    current_position_amount = float(new_qty) * float(bar.get('close', 0.0) or 0.0)
                     self.secretariat.update_strategy_state(strategy_id, signal['code'], new_qty)
                     print(f"   🚀 执行成功! 当前持仓: {new_qty}")
                     realized_pnl = None
@@ -1319,7 +1409,9 @@ class LiveCabinet:
                         'qty': int(signal.get('qty', 0)),
                         'realized_pnl': realized_pnl,
                         'expected_price': float(signal.get('price', 0.0)),
-                        'actual_price': float(bar.get('close', 0.0))
+                        'actual_price': float(bar.get('close', 0.0)),
+                        'current_position_qty': int(new_qty),
+                        'current_position_amount': float(current_position_amount)
                     })
                     self._persist_virtual_fund_pool()
                     await self._emit_event('fund_pool', self.get_fund_pool_snapshot(include_transactions=False))
@@ -1365,7 +1457,9 @@ class LiveCabinet:
                     'status': 'bg-trading-red'
                 })
             self.state_affairs.execute_order(order['strategy_id'], order, bar)
-            self.secretariat.update_strategy_state(order['strategy_id'], order['code'], 0)
+            remaining_qty = self.state_affairs.positions.get(order['strategy_id'], {}).get(order['code'], {}).get('qty', 0)
+            current_position_amount = float(remaining_qty) * float(bar.get('close', 0.0) or 0.0)
+            self.secretariat.update_strategy_state(order['strategy_id'], order['code'], remaining_qty)
             realized_pnl = None
             if self.revenue.transactions:
                 last_tx = self.revenue.transactions[-1]
@@ -1377,7 +1471,9 @@ class LiveCabinet:
                 'direction': 'SELL',
                 'price': float(order.get('price', 0.0)),
                 'qty': int(order.get('qty', 0)),
-                'realized_pnl': realized_pnl
+                'realized_pnl': realized_pnl,
+                'current_position_qty': int(remaining_qty),
+                'current_position_amount': float(current_position_amount)
             })
             self._persist_virtual_fund_pool()
             await self._emit_event('fund_pool', self.get_fund_pool_snapshot(include_transactions=False))

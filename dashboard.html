@@ -180,6 +180,27 @@
             color: #0f172a;
             background-color: #f8fafc;
         }
+
+        #right-panel-stack,
+        #strategy-quick-panel,
+        #right-bottom-stack,
+        #live-console-panel,
+        #live-stream-panel,
+        #imperial-timeline {
+            min-width: 0;
+        }
+
+        #live-trigger-summary,
+        #live-strategy-summary,
+        #live-kline-freshness-list > div,
+        #live-alert-list > div,
+        #live-lot-list > div,
+        #live-exception-message,
+        #strategy-quick-details > div {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col text-sm antialiased selection:bg-trading-blue selection:text-white">
@@ -354,7 +375,7 @@
         <div class="scan-line"></div>
 
         <!-- LEFT: Three Departments (Decision Hub) -->
-        <section class="w-1/4 flex flex-col gap-4">
+        <section class="min-w-0 flex-[1] flex flex-col gap-4">
             <!-- Header -->
             <div class="flex items-center gap-2 text-trading-dim text-xs font-bold uppercase tracking-widest border-b border-slate-700 pb-2">
                 <i class="fa-solid fa-landmark"></i> 智能决策中枢 (Central Hub)
@@ -417,7 +438,7 @@
         </section>
 
         <!-- CENTER: Six Ministries (Execution Modules) -->
-        <section class="w-1/2 flex flex-col gap-4">
+        <section class="min-w-0 flex-[2] flex flex-col gap-4">
             <div class="flex items-center gap-2 text-trading-dim text-xs font-bold uppercase tracking-widest border-b border-slate-700 pb-2">
                 <i class="fa-solid fa-chess-board"></i> 核心执行模块 (Core Execution)
             </div>
@@ -568,14 +589,14 @@
         </section>
 
         <!-- RIGHT: Imperial Archives (Log) -->
-        <section class="w-1/4 flex flex-col gap-4">
+        <section class="min-w-0 flex-[1] flex flex-col gap-4">
             <div class="flex items-center gap-2 text-trading-dim text-xs font-bold uppercase tracking-widest border-b border-slate-700 pb-2">
                 <i class="fa-solid fa-clock-rotate-left"></i> 系统运行日志 (System Logs)
             </div>
-            <div class="flex items-center gap-2 -mt-2">
-                <button id="right-preset-monitor" onclick="setRightLayoutPreset('monitor')" class="text-[10px] px-2 py-1 rounded bg-cyan-800/60 hover:bg-cyan-700 text-cyan-100 border border-cyan-700">专注监控</button>
-                <button id="right-preset-strategy" onclick="setRightLayoutPreset('strategy')" class="text-[10px] px-2 py-1 rounded bg-indigo-800/60 hover:bg-indigo-700 text-indigo-100 border border-indigo-700">专注策略</button>
-                <button id="right-preset-alert" onclick="setRightLayoutPreset('alert')" class="text-[10px] px-2 py-1 rounded bg-rose-800/60 hover:bg-rose-700 text-rose-100 border border-rose-700">专注告警</button>
+            <div class="flex items-center gap-2 -mt-2 flex-wrap">
+                <button id="right-preset-monitor" onclick="setRightLayoutPreset('monitor')" class="text-[10px] px-2 py-1 rounded bg-cyan-800/60 hover:bg-cyan-700 text-cyan-100 border border-cyan-700 whitespace-nowrap">专注监控</button>
+                <button id="right-preset-strategy" onclick="setRightLayoutPreset('strategy')" class="text-[10px] px-2 py-1 rounded bg-indigo-800/60 hover:bg-indigo-700 text-indigo-100 border border-indigo-700 whitespace-nowrap">专注策略</button>
+                <button id="right-preset-alert" onclick="setRightLayoutPreset('alert')" class="text-[10px] px-2 py-1 rounded bg-rose-800/60 hover:bg-rose-700 text-rose-100 border border-rose-700 whitespace-nowrap">专注告警</button>
             </div>
             <div id="right-panel-stack" class="flex-1 min-h-0 grid grid-rows-2 gap-4">
                 <div id="strategy-quick-panel" class="glass-panel rounded-lg p-3 border border-slate-700/70 h-full min-h-0 overflow-y-auto">
@@ -791,11 +812,11 @@
                             <span>实时指令流</span>
                             <button id="live-stream-toggle-btn" onclick="toggleRightPanel('stream')" class="text-[10px] px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 border border-slate-500">折叠</button>
                         </div>
-                        <div id="imperial-timeline" class="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-xs">
-                            <div class="flex gap-2 opacity-50">
-                                <span class="text-slate-500">[09:30:00]</span>
-                                <span class="text-blue-400">系统</span>
-                                <span class="text-slate-300">系统启动...</span>
+                        <div id="imperial-timeline" class="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 font-mono text-xs">
+                            <div class="flex gap-2 opacity-50 min-w-0">
+                                <span class="text-slate-500 shrink-0">[09:30:00]</span>
+                                <span class="text-blue-400 shrink-0">系统</span>
+                                <span class="text-slate-300 min-w-0 break-words whitespace-pre-wrap">系统启动...</span>
                             </div>
                         </div>
                         <div id="stream-resize-handle" onmousedown="startPanelResize('stream', event)" class="h-2 rounded-b bg-slate-700/70 hover:bg-cyan-500/70 cursor-row-resize"></div>
@@ -1807,7 +1828,8 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                         const shouldAppend = msg.includes('正在拉取K线数据') && stock;
                         const tfText = tf ? (tf.toUpperCase() === 'D' ? '日线' : tf) : '';
                         const fullMsg = shouldAppend ? `${msg}${tfText ? `（${tfText}）` : ''}` : msg;
-                        logMessage('SYSTEM', fullMsg, 'system');
+                        const eventClock = formatClockTime(data?.time || payload?.server_time || payload?.server_ts || '');
+                        logMessage('SYSTEM', fullMsg, 'system', eventClock);
                     }
                     if ((data.msg || '').includes('回测完成')) {
                         closeBacktestStream();
@@ -1833,7 +1855,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     logMessage('SYSTEM', `已加载 ${data.length} 套内阁策略`, 'system');
                     break;
                 case 'market':
-                    updateMarket(data);
+                    updateMarket(data, payload.stock_code);
                     BT_STATE.latestPrice = Number(data.price || BT_STATE.latestPrice || 0);
                     pulsePanel('panel-gong');
                     break;
@@ -1974,7 +1996,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             }
         }
         
-        function updateMarket(data) {
+        function updateMarket(data, payloadStockCode = '') {
             if(data.price) {
                 const p = Number(data.price);
                 setMetricText('war-price', String(data.price), p);
@@ -1995,14 +2017,17 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const source = document.getElementById('ind-source-info');
             const tfSummary = document.getElementById('ind-strategy-tf-summary');
             if (source) {
+                const stockCode = String(data.stock_code || data.code || payloadStockCode || '').toUpperCase();
+                const stockName = String(data.stock_name || '').trim();
+                const stockText = stockName && stockCode ? `${stockName}(${stockCode})` : (stockName || stockCode || '--');
                 const tf = String(data.kline_timeframe || '--');
                 const dt = String(data.kline_dt || data.time || '--');
                 const runTf = Array.isArray(data.runnable_timeframes) ? data.runnable_timeframes.join('/') : '';
                 const runIds = Array.isArray(data.runnable_strategy_ids) ? data.runnable_strategy_ids.join(',') : '';
                 if (runTf || runIds) {
-                    source.innerText = `${tf} · ${dt} · 本次触发: ${runTf || '--'}${runIds ? ` (${runIds})` : ''}`;
+                    source.innerText = `${stockText} · ${tf} · ${dt} · 本次触发: ${runTf || '--'}${runIds ? ` (${runIds})` : ''}`;
                 } else {
-                    source.innerText = `${tf} · ${dt}`;
+                    source.innerText = `${stockText} · ${tf} · ${dt}`;
                 }
             }
             if (tfSummary && data.strategy_timeframes && typeof data.strategy_timeframes === 'object') {
@@ -2664,6 +2689,15 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             const list = document.getElementById('live-kline-freshness-list');
             const badge = document.getElementById('live-kline-freshness-badge');
             if (!list || !badge) return;
+            const reasonLabelMap = {
+                OK: '正常',
+                TOKEN_INVALID: 'Token失效',
+                NETWORK_TIMEOUT: '网络超时',
+                NETWORK_ERROR: '网络异常',
+                CODE_NO_DATA: '代码无数据',
+                TABLE_EMPTY: '数据表空',
+                UNKNOWN: '未知原因'
+            };
             const stockCode = String(data?.stock_code || payloadStockCode || '--').toUpperCase();
             if (!stockCode || stockCode === '--') return;
             DIAG_STATE.liveKlineFreshnessMap[stockCode] = {
@@ -2671,6 +2705,9 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 check_time: String(data?.check_time || getTime()),
                 check_ok: Boolean(data?.check_ok !== false),
                 message: String(data?.message || ''),
+                reason_category: String(data?.reason_category || 'UNKNOWN').toUpperCase(),
+                reason_label: String(data?.reason_label || '').trim(),
+                reason_detail: String(data?.reason_detail || '').trim(),
                 expected_latest_trade_date: String(data?.expected_latest_trade_date || '--'),
                 latest_kline_date: String(data?.latest_kline_date || '--'),
                 latest_kline_dt: String(data?.latest_kline_dt || '--'),
@@ -2696,13 +2733,16 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                     : 'text-emerald-300 border border-emerald-700/40 rounded px-1 py-0.5');
                 row.className = cls;
                 const lagTag = item.check_ok === false ? '失败' : (item.lagged ? '滞后' : '正常');
+                const reasonLabel = item.reason_label || reasonLabelMap[item.reason_category] || reasonLabelMap.UNKNOWN;
                 const tfLag = (Array.isArray(item.timeframes) ? item.timeframes : [])
                     .filter(x => Boolean(x?.lagged))
                     .map(x => `${String(x?.timeframe || '--')}:${Number(x?.lag_days || 0)}d`)
                     .join(', ');
                 const lagText = tfLag ? ` | ${tfLag}` : '';
+                const reasonText = item.check_ok === false ? ` | 原因分类 ${reasonLabel}` : '';
                 const msgText = item.message ? ` | ${item.message}` : '';
-                row.innerText = `[${item.check_time}] ${item.stock_code} | 最新 ${item.latest_kline_date || '--'} | 预期 ${item.expected_latest_trade_date || '--'} | ${lagTag}${lagText}${msgText}`;
+                const detailText = item.reason_detail ? ` | 诊断 ${item.reason_detail}` : '';
+                row.innerText = `[${item.check_time}] ${item.stock_code} | 最新 ${item.latest_kline_date || '--'} | 预期 ${item.expected_latest_trade_date || '--'} | ${lagTag}${reasonText}${lagText}${msgText}${detailText}`;
                 list.appendChild(row);
             });
             if (!rows.length) {
@@ -3854,7 +3894,7 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             { value: 'B', label: 'B 系统异常', desc: '异常/失败/退出' },
             { value: 'C', label: 'C 交易决策', desc: '策略信号（zhongshu）' },
             { value: 'D', label: 'D 风控结果', desc: '风控结果（menxia）' },
-            { value: 'E', label: 'E 成交执行', desc: '成交回报（trade_exec）' },
+            { value: 'E', label: 'E 成交执行', desc: '成交信号（trade_exec）' },
             { value: 'F', label: 'F 账户资金', desc: 'account/fund_pool' },
             { value: 'G', label: 'G 监控告警', desc: 'live_alert' },
             { value: 'H', label: 'H 健康快照', desc: 'live_monitor_snapshot/live_kline_freshness' },
@@ -6920,6 +6960,17 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
 
         // UI Helpers
         const getTime = () => new Date().toLocaleTimeString('en-GB', { hour12: false });
+        const formatClockTime = (v) => {
+            const text = String(v || '').trim();
+            if (!text) return '';
+            if (/^\d{2}:\d{2}:\d{2}$/.test(text)) return text;
+            const d = new Date(text);
+            if (Number.isNaN(d.getTime())) return '';
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mi = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${hh}:${mi}:${ss}`;
+        };
         const formatDateTime = (v) => {
             if (!v) return '--';
             const d = new Date(v);
@@ -6933,10 +6984,10 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
         };
         
-        function logMessage(module, message, type = 'info') {
+        function logMessage(module, message, type = 'info', eventClock = '') {
             const timeline = document.getElementById('imperial-timeline');
             const el = document.createElement('div');
-            el.className = 'flex gap-2 animate-pulse';
+            el.className = 'flex gap-2 animate-pulse min-w-0';
             const moduleText = String(module || '') === 'SYSTEM' ? '系统' : module;
             const moduleColorMap = {
                 '中书省': 'text-trading-blue',
@@ -6984,9 +7035,9 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
             }
 
             el.innerHTML = `
-                <span class="text-slate-500">[${getTime()}]</span>
-                <span class="font-bold w-16 text-right ${color}">${moduleText}</span>
-                <span class="text-slate-200 flex-1">${message}</span>
+                <span class="text-slate-500 shrink-0">[${eventClock || getTime()}]</span>
+                <span class="font-bold w-16 text-right ${color} shrink-0">${moduleText}</span>
+                <span class="text-slate-200 flex-1 min-w-0 break-words whitespace-pre-wrap">${message}</span>
             `;
             
             timeline.appendChild(el);
