@@ -123,6 +123,7 @@ flowchart LR
   - 不荐股、不指导买卖、不承诺收益、不涉及任何投资建议。
   - 适合人群：量化爱好者、Python 开发者、想自建量化研究工具的学习者。
 - 新用户优惠券，100张，领完即止
+
 <p align="center">
   <img src="static/星球优惠券.png" width="45%" />
   <img src="static/星球二维码.png" width="45%" />
