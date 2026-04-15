@@ -208,6 +208,9 @@ config = ConfigLoader()
 intent_engine = StrategyIntentEngine()
 history_sync_service = HistoryDiffSyncService()
 history_sync_scheduler_task = None
+live_auto_start_scheduler_task = None
+live_auto_start_last_trigger_date = ""
+live_auto_start_last_invalid_time = ""
 startup_server_host = None
 startup_server_port = None
 webhook_notifier = WebhookNotifier()
@@ -6340,6 +6343,97 @@ async def _history_sync_scheduler_loop():
             logger.error(f"history sync scheduler failed: {e}", exc_info=True)
         await asyncio.sleep(interval * 60)
 
+async def _auto_start_live_from_config(cfg=None):
+    global live_capital_plan_mode, live_capital_plan_weights
+    # 统一从当前配置中解析自动实盘启动目标，避免写死标的。
+    c = cfg if cfg is not None else ConfigLoader.reload()
+    codes = _configured_live_codes(c)
+    if not codes:
+        codes = _normalize_live_codes(cfg=c)
+    total_capital = float(c.get("system.initial_capital", 1000000.0) or 1000000.0)
+    all_target_codes = list(dict.fromkeys(_live_running_codes() + codes))
+    # 沿用现有资金分配机制，确保自动启动与手动启动口径一致。
+    cap_plan, cap_mode, cap_weights = _build_live_capital_plan(
+        codes=all_target_codes,
+        total_capital=total_capital,
+        allocation_mode=live_capital_plan_mode,
+        allocation_weights=live_capital_plan_weights if isinstance(live_capital_plan_weights, dict) else None,
+    )
+    live_capital_plan_mode = cap_mode
+    live_capital_plan_weights = cap_weights
+    for code, cap in cap_plan.items():
+        live_capital_profiles[code] = float(cap)
+    started = []
+    already_running = []
+    for stock_code in codes:
+        task = live_tasks.get(stock_code)
+        if task and not task.done():
+            already_running.append(stock_code)
+            continue
+        live_tasks[stock_code] = asyncio.create_task(run_cabinet_task(stock_code))
+        started.append(stock_code)
+    return started, already_running
+
+def _resolve_live_auto_start_schedule(cfg=None):
+    # 支持从配置动态读取自动实盘开关与时间，避免修改代码才能调整时刻。
+    c = cfg if cfg is not None else ConfigLoader.reload()
+    enabled = bool(c.get("system.live_auto_start_enabled", True))
+    raw_time = str(c.get("system.live_auto_start_time", "09:20") or "09:20").strip()
+    # 仅接受 HH:MM（24小时制），非法值回退默认时间，保证调度器稳态运行。
+    m = re.match(r"^([01]?\d|2[0-3])\s*[:：]\s*([0-5]\d)$", raw_time)
+    if not m:
+        return enabled, 9, 20, "09:20", raw_time
+    hour = int(m.group(1))
+    minute = int(m.group(2))
+    return enabled, hour, minute, f"{hour:02d}:{minute:02d}", raw_time
+
+async def _live_auto_start_scheduler_loop():
+    global live_auto_start_last_trigger_date, live_auto_start_last_invalid_time
+    while True:
+        try:
+            cfg = ConfigLoader.reload()
+            now = datetime.now()
+            today = now.strftime("%Y-%m-%d")
+            enabled, target_hour, target_minute, target_hhmm, raw_time = _resolve_live_auto_start_schedule(cfg)
+            if raw_time and raw_time != target_hhmm:
+                # 非法时间仅在值变化时告警一次，避免高频轮询造成日志刷屏。
+                if live_auto_start_last_invalid_time != raw_time:
+                    logger.warning(
+                        "system.live_auto_start_time invalid=%s, fallback=%s",
+                        raw_time,
+                        target_hhmm,
+                    )
+                    live_auto_start_last_invalid_time = raw_time
+            else:
+                live_auto_start_last_invalid_time = ""
+            # 每日在配置时刻触发一次自动开启（仅 live 模式且启用自动启动时生效）。
+            if (
+                enabled
+                and now.hour == target_hour
+                and now.minute == target_minute
+                and live_auto_start_last_trigger_date != today
+                and _system_mode(cfg) == "live"
+                and bool(cfg.get("system.enable_live", True))
+            ):
+                started, already_running = await _auto_start_live_from_config(cfg)
+                live_auto_start_last_trigger_date = today
+                if started:
+                    await _broadcast_system_and_notify(
+                        f"{target_hhmm} 自动开启实盘：{_format_live_start_summary(started)}",
+                        started,
+                    )
+                else:
+                    await _broadcast_system_and_notify(
+                        f"{target_hhmm} 自动开启实盘检查完成：目标已在运行中 {','.join(already_running)}",
+                        already_running,
+                    )
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.error("live auto start scheduler failed: %s", e, exc_info=True)
+        # 低频轮询足够覆盖分钟粒度调度，同时降低对主循环的影响。
+        await asyncio.sleep(5)
+
 @app.post("/api/history_sync/run")
 async def api_history_sync_run(req: HistorySyncRunRequest):
     payload = _history_sync_payload_from_request(req)
@@ -6919,7 +7013,7 @@ async def _broadcast_system_and_notify(msg: str, stock_codes=None):
 
 @app.on_event("startup")
 async def startup_event():
-    global history_sync_scheduler_task, startup_server_host, startup_server_port, evolution_ws_pump_task
+    global history_sync_scheduler_task, startup_server_host, startup_server_port, evolution_ws_pump_task, live_auto_start_scheduler_task
     _apply_log_level()
     logging.getLogger("uvicorn.access").addFilter(_UvicornAccessPathFilter())
     logger.info("Initializing Cabinet Server...")
@@ -6939,6 +7033,9 @@ async def startup_event():
     _startup_private_data_check(cfg)
     if bool(cfg.get("history_sync.scheduler_enabled", False)):
         history_sync_scheduler_task = asyncio.create_task(_history_sync_scheduler_loop())
+    if live_auto_start_scheduler_task is None or live_auto_start_scheduler_task.done():
+        # 自动实盘启动调度器始终常驻，由运行模式决定是否触发。
+        live_auto_start_scheduler_task = asyncio.create_task(_live_auto_start_scheduler_loop())
     evolution_runtime.set_event_sink(_push_evolution_ws_event)
     if evolution_ws_pump_task is None or evolution_ws_pump_task.done():
         evolution_ws_pump_task = asyncio.create_task(_evolution_ws_pump_loop())
@@ -6949,11 +7046,11 @@ async def startup_event():
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    global history_sync_scheduler_task, evolution_ws_pump_task
+    global history_sync_scheduler_task, evolution_ws_pump_task, live_auto_start_scheduler_task
     if not str(SERVER_SHUTDOWN_CONTEXT.get("reason", "") or "").strip():
         _mark_server_shutdown_reason(reason="shutdown_event", detail="lifecycle shutdown event", origin="fastapi", overwrite=True)
     logger.warning(
-        "Shutdown event triggered reason=%s detail=%s origin=%s signal=%s cabinet_running=%s live_codes=%s history_sync_running=%s evolution_running=%s",
+        "Shutdown event triggered reason=%s detail=%s origin=%s signal=%s cabinet_running=%s live_codes=%s history_sync_running=%s live_auto_start_running=%s evolution_running=%s",
         SERVER_SHUTDOWN_CONTEXT.get("reason", ""),
         SERVER_SHUTDOWN_CONTEXT.get("detail", ""),
         SERVER_SHUTDOWN_CONTEXT.get("origin", ""),
@@ -6961,6 +7058,7 @@ async def shutdown_event():
         bool(cabinet_task and not cabinet_task.done()) if cabinet_task is not None else False,
         _live_running_codes(),
         bool(history_sync_scheduler_task and not history_sync_scheduler_task.done()) if history_sync_scheduler_task is not None else False,
+        bool(live_auto_start_scheduler_task and not live_auto_start_scheduler_task.done()) if live_auto_start_scheduler_task is not None else False,
         bool(evolution_runtime.status().get("running", False)),
     )
     if cabinet_task:
@@ -6969,6 +7067,8 @@ async def shutdown_event():
         await _stop_live_tasks()
     if history_sync_scheduler_task and not history_sync_scheduler_task.done():
         history_sync_scheduler_task.cancel()
+    if live_auto_start_scheduler_task and not live_auto_start_scheduler_task.done():
+        live_auto_start_scheduler_task.cancel()
     evolution_runtime.set_event_sink(None)
     evolution_runtime.stop()
     if evolution_ws_pump_task and not evolution_ws_pump_task.done():

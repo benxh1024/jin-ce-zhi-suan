@@ -5023,6 +5023,9 @@ class GeneratedStrategyTemplate(BaseImplementedStrategy):
                 fields: [
                     { path: 'system.mode', label: '运行模式', type: 'select', options: [{ value: 'backtest', label: '回测模式' }, { value: 'live', label: '实盘模式' }], desc: '用于切换系统主流程（回测/实盘）' },
                     { path: 'system.enable_live', label: '启用实盘', type: 'boolean', desc: '实盘总开关；需与“运行模式=实盘”同时满足才会生效' },
+                    // 自动实盘启动：默认开启，默认时间 09:20，可按运营需要在配置中心改动。
+                    { path: 'system.live_auto_start_enabled', label: '自动开启实盘', type: 'boolean', default: true, desc: '开启后在指定时间自动拉起实盘任务（仅在运行模式=实盘且启用实盘时触发）' },
+                    { path: 'system.live_auto_start_time', label: '自动开启时间', type: 'text', default: '09:20', placeholder: 'HH:MM，例如 09:20', desc: '24小时制，格式 HH:MM；配置非法时服务端会回退到 09:20' },
                     { path: 'system.initial_capital', label: '系统初始资金', type: 'number', unit: '元', min: 10000, max: 100000000, step: 10000, slider: true },
                     { path: 'system.live_kline_log_on_change_only', label: 'K线明细仅变化时打印', type: 'boolean', desc: '开启后仅在分钟K线数据变化时打印明细，减少并发标的日志噪声' },
                     { path: 'system.log_level', label: '日志级别', type: 'select', options: [{ value: 'DEBUG', label: '调试' }, { value: 'INFO', label: '信息' }, { value: 'WARNING', label: '警告' }, { value: 'ERROR', label: '错误' }] }
